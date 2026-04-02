@@ -2639,6 +2639,72 @@ function saveGezin(g) {
   try { localStorage.setItem(LS_GEZIN, JSON.stringify(g)); } catch {}
 }
 
+// ── Mobile: Home tegels ───────────────────────────────────────────────────
+function HomeTegels({ onKlik }) {
+  const tegels = [
+    {
+      key: "planner", label: "Weekplanning", desc: "Plan je maaltijden voor de week",
+      kleur: { bg: "#EFF5EF", border: "#C4D9C4", icon: "#3D6B41" },
+      icon: <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="4" x2="9" y2="9"/><line x1="15" y1="4" x2="15" y2="9"/></svg>
+    },
+    {
+      key: "recepten", label: "Recepten", desc: "Bekijk en beheer je recepten",
+      kleur: { bg: "#EDF5F0", border: "#B8D4C0", icon: "#4A7C59" },
+      icon: <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M4 19V6a2 2 0 012-2h12a2 2 0 012 2v13"/><path d="M4 19h16"/><path d="M8 11h8M8 15h5"/></svg>
+    },
+    {
+      key: "boodschappen", label: "Boodschappen", desc: "Genereer je boodschappenlijst",
+      kleur: { bg: "#FDF6E8", border: "#E8D9B4", icon: "#8B6914" },
+      icon: <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+    },
+    {
+      key: "kalender", label: "Geschiedenis", desc: "Bekijk eerder gegeten maaltijden",
+      kleur: { bg: "#EDF0F7", border: "#C4CCD9", icon: "#4A5880" },
+      icon: <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><circle cx="8" cy="14" r="1.2" fill="currentColor"/><circle cx="12" cy="14" r="1.2" fill="currentColor"/><circle cx="16" cy="14" r="1.2" fill="currentColor"/><circle cx="8" cy="18" r="1.2" fill="currentColor"/><circle cx="12" cy="18" r="1.2" fill="currentColor"/></svg>
+    },
+  ];
+  return (
+    <div style={{ padding: "24px 16px 40px" }}>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontFamily: "'Playfair Display',Georgia,serif", fontSize: 24, color: "#2C3E2D", lineHeight: 1.2 }}>Tafel &amp; Week</div>
+        <div style={{ fontSize: 14, color: "#8A9A8B", marginTop: 6 }}>Wat wil je doen?</div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        {tegels.map(t => (
+          <div key={t.key} onClick={() => onKlik(t.key)} style={{
+            background: t.kleur.bg, borderRadius: 16, padding: "20px 16px 18px",
+            border: `1px solid ${t.kleur.border}`, cursor: "pointer",
+            display: "flex", flexDirection: "column", gap: 12,
+            boxShadow: "0 2px 8px rgba(44,74,46,.07)", minHeight: 130,
+            WebkitTapHighlightColor: "transparent"
+          }}>
+            <div style={{ color: t.kleur.icon }}>{t.icon}</div>
+            <div>
+              <div style={{ fontWeight: 500, fontSize: 15, color: "#2C3E2D" }}>{t.label}</div>
+              <div style={{ fontSize: 12, color: "#8A9A8B", marginTop: 3, lineHeight: 1.4 }}>{t.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Mobile: Bottom sheet overlay ──────────────────────────────────────────
+function MobileSheet({ titel, onSluit, children }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 200, display: "flex", flexDirection: "column", justifyContent: "flex-end" }} onClick={onSluit}>
+      <div style={{ background: "#F7F3EC", borderRadius: "20px 20px 0 0", maxHeight: "88vh", display: "flex", flexDirection: "column", overflow: "hidden" }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #DDD5C4", flexShrink: 0 }}>
+          <div style={{ fontFamily: "'Playfair Display',Georgia,serif", fontSize: 17, color: "#2C3E2D" }}>{titel}</div>
+          <button onClick={onSluit} style={{ background: "none", border: "none", fontSize: 22, color: "#8A9A8B", cursor: "pointer", padding: "0 4px", lineHeight: 1 }}>✕</button>
+        </div>
+        <div style={{ overflowY: "auto", flex: 1, WebkitOverflowScrolling: "touch" }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
 // ── Root app met localStorage ─────────────────────────────────────────────
 function AppWithStorage() {
   const [pagina, setPagina] = useState("planner");
@@ -2648,7 +2714,6 @@ function AppWithStorage() {
   const [planning, setPlanningState] = useState(() => {
     const saved = loadPlanning();
     if (!saved) return initPlanning;
-    // Koppel recepten terug via id
     const receptenData = loadRecepten() || initRecepten;
     const receptenMap = Object.fromEntries(receptenData.map(r => [r.id, r]));
     const result = {};
@@ -2658,10 +2723,94 @@ function AppWithStorage() {
     return result;
   });
   const [gezinData, setGezinDataState] = useState(() => loadGezin() || null);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [mobilePagina, setMobilePagina] = useState("home");
+  const [mobileOverlay, setMobileOverlay] = useState(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   const setRecepten = (r) => { setReceptenState(r); saveRecepten(r); };
   const setPlanning = (p) => { setPlanningState(p); savePlanning(p); };
 
+  const paginaTitels = { planner: "Weekplanning", recepten: "Recepten", boodschappen: "Boodschappen", kalender: "Geschiedenis" };
+
+  // ── Mobile layout ─────────────────────────────────────────────────────
+  if (isMobile) {
+    const btnStijl = { background: "none", border: "none", color: "rgba(255,255,255,.82)", cursor: "pointer", padding: 8, borderRadius: 8, display: "flex", alignItems: "center" };
+    return (
+      <div style={{ display: "flex", flexDirection: "column", height: "100dvh", fontFamily: "'DM Sans',sans-serif", fontSize: 14, color: G.tekst, background: G.zand, overflow: "hidden" }}>
+
+        {/* Top navbar */}
+        <header style={{ background: G.groen, paddingLeft: 16, paddingRight: 8, paddingTop: "calc(env(safe-area-inset-top) + 10px)", paddingBottom: 10, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+          {mobilePagina !== "home" ? (
+            <button onClick={() => setMobilePagina("home")} style={{ ...btnStijl, gap: 4, fontSize: 14 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><polyline points="15 18 9 12 15 6"/></svg>
+              {paginaTitels[mobilePagina]}
+            </button>
+          ) : (
+            <div style={{ fontFamily: "'Playfair Display',Georgia,serif", fontSize: 17, color: "#FAFAF7" }}>Tafel &amp; Week</div>
+          )}
+          <div style={{ display: "flex" }}>
+            <button onClick={() => setMobileOverlay("statistieken")} style={btnStijl} title="Statistieken">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+            </button>
+            <button onClick={() => setMobileOverlay("gezin")} style={btnStijl} title="Gezin">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+            </button>
+            <button onClick={() => setMobileOverlay("instellingen")} style={{ ...btnStijl, color: apiKey ? "rgba(255,255,255,.82)" : "#FFD580" }} title="Instellingen">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+            </button>
+          </div>
+        </header>
+
+        {/* Pagina inhoud */}
+        <main style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+          {mobilePagina === "home"        && <HomeTegels onKlik={setMobilePagina} />}
+          {mobilePagina === "planner"     && <PlannerPage planning={planning} setPlanning={setPlanning} recepten={recepten} />}
+          {mobilePagina === "recepten"    && <ReceptenPage recepten={recepten} setRecepten={setRecepten} />}
+          {mobilePagina === "boodschappen"&& <BoodschappenPage planning={planning} />}
+          {mobilePagina === "kalender"    && <KalenderPage />}
+        </main>
+
+        {/* Overlays */}
+        {mobileOverlay === "gezin" && (
+          <MobileSheet titel="Gezin" onSluit={() => setMobileOverlay(null)}>
+            <GezinPage savedData={gezinData} onSave={(g) => { setGezinDataState(g); saveGezin(g); }} />
+          </MobileSheet>
+        )}
+        {mobileOverlay === "statistieken" && (
+          <MobileSheet titel="Statistieken" onSluit={() => setMobileOverlay(null)}>
+            <StatistiekenPage recepten={recepten} planning={planning} />
+          </MobileSheet>
+        )}
+        {mobileOverlay === "instellingen" && (
+          <MobileSheet titel="Instellingen" onSluit={() => setMobileOverlay(null)}>
+            <div style={{ padding: "20px 20px 40px" }}>
+              <div style={{ fontSize: 12, color: G.tekstZacht, marginBottom: 8, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".05em" }}>Anthropic API key</div>
+              <input
+                type="password"
+                placeholder="sk-ant-..."
+                defaultValue={apiKey}
+                onBlur={e => { const k = e.target.value.trim(); setApiKeyState(k); saveApiKey(k); }}
+                style={{ width: "100%", background: G.kaart, border: `1px solid ${G.zandMid}`, borderRadius: 8, padding: "10px 12px", fontSize: 14, color: G.tekst, outline: "none", fontFamily: "monospace", boxSizing: "border-box" }}
+              />
+              <div style={{ fontSize: 12, color: G.tekstZacht, marginTop: 8, lineHeight: 1.5 }}>
+                Nodig voor PDF uitlezen van AH-facturen. Wordt lokaal opgeslagen in je browser.
+              </div>
+              {apiKey && <div style={{ marginTop: 10, fontSize: 13, color: G.groen, fontWeight: 500 }}>✓ API key ingesteld</div>}
+            </div>
+          </MobileSheet>
+        )}
+      </div>
+    );
+  }
+
+  // ── Desktop layout ────────────────────────────────────────────────────
   const nav = [
     { key: "planner", label: "Weekplanning", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="4" x2="9" y2="9"/></svg> },
     { key: "recepten", label: "Recepten", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 19V6a2 2 0 012-2h12a2 2 0 012 2v13"/><path d="M4 19h16"/><path d="M8 11h8M8 15h5"/></svg> },
@@ -2672,7 +2821,7 @@ function AppWithStorage() {
   ];
 
   return (
-    <div style={{ display: "flex", height: "100vh", fontFamily: "\'DM Sans\',sans-serif", fontSize: 14, color: G.tekst, background: G.zand, overflow: "hidden" }}>
+    <div style={{ display: "flex", height: "100vh", fontFamily: "'DM Sans',sans-serif", fontSize: 14, color: G.tekst, background: G.zand, overflow: "hidden" }}>
       <nav style={{ width: 200, background: G.groen, padding: "22px 0", display: "flex", flexDirection: "column", flexShrink: 0, height: "100vh" }}>
         <div style={{ padding: "0 20px 20px", borderBottom: "1px solid rgba(255,255,255,.1)", marginBottom: 14 }}>
           <div style={{ fontFamily: "Georgia,serif", fontSize: 17, color: "#FAFAF7", lineHeight: 1.3 }}>Tafel &amp; Week</div>
@@ -2687,21 +2836,8 @@ function AppWithStorage() {
           {toonApiKey ? (
             <div>
               <div style={{ fontSize: 10, color: G.groenLicht, marginBottom: 5, letterSpacing: ".04em" }}>Anthropic API key</div>
-              <input
-                type="password"
-                placeholder="sk-ant-..."
-                defaultValue={apiKey}
-                onBlur={e => {
-                  const k = e.target.value.trim();
-                  setApiKeyState(k);
-                  saveApiKey(k);
-                  if (k) setToonApiKey(false);
-                }}
-                style={{ width: "100%", background: "rgba(255,255,255,.1)", border: "1px solid rgba(255,255,255,.2)", borderRadius: 6, padding: "5px 8px", fontSize: 11, color: "#fff", outline: "none", fontFamily: "monospace" }}
-              />
-              <div style={{ fontSize: 10, color: "rgba(255,255,255,.35)", marginTop: 4, lineHeight: 1.4 }}>
-                Nodig voor PDF uitlezen &amp; boodschappenlijst. Wordt lokaal opgeslagen.
-              </div>
+              <input type="password" placeholder="sk-ant-..." defaultValue={apiKey} onBlur={e => { const k = e.target.value.trim(); setApiKeyState(k); saveApiKey(k); if (k) setToonApiKey(false); }} style={{ width: "100%", background: "rgba(255,255,255,.1)", border: "1px solid rgba(255,255,255,.2)", borderRadius: 6, padding: "5px 8px", fontSize: 11, color: "#fff", outline: "none", fontFamily: "monospace" }} />
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,.35)", marginTop: 4, lineHeight: 1.4 }}>Nodig voor PDF uitlezen &amp; boodschappenlijst. Wordt lokaal opgeslagen.</div>
             </div>
           ) : (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -2712,12 +2848,12 @@ function AppWithStorage() {
         </div>
       </nav>
       <main style={{ flex: 1, overflowY: "auto" }}>
-        {pagina === "planner" && <PlannerPage planning={planning} setPlanning={setPlanning} recepten={recepten} />}
-        {pagina === "recepten" && <ReceptenPage recepten={recepten} setRecepten={setRecepten} />}
+        {pagina === "planner"      && <PlannerPage planning={planning} setPlanning={setPlanning} recepten={recepten} />}
+        {pagina === "recepten"     && <ReceptenPage recepten={recepten} setRecepten={setRecepten} />}
         {pagina === "boodschappen" && <BoodschappenPage planning={planning} />}
-        {pagina === "kalender" && <KalenderPage />}
+        {pagina === "kalender"     && <KalenderPage />}
         {pagina === "statistieken" && <StatistiekenPage recepten={recepten} planning={planning} />}
-        {pagina === "gezin" && <GezinPage savedData={gezinData} onSave={(g) => { setGezinDataState(g); saveGezin(g); }} />}
+        {pagina === "gezin"        && <GezinPage savedData={gezinData} onSave={(g) => { setGezinDataState(g); saveGezin(g); }} />}
       </main>
     </div>
   );
