@@ -1,0 +1,19 @@
+{
+  "name": "Tafel & Week — Maaltijdplanner",
+  "short_name": "Maaltijdplanner",
+  "description": "Wekelijkse maaltijdplanner voor het gezin",
+  "start_url": "Weekly%20Meal%20Planner.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F7F3EC",
+  "theme_color": "#3D6B41",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

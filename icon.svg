@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="38" fill="#3D6B41"/>
+  <!-- Bord -->
+  <circle cx="96" cy="104" r="50" fill="none" stroke="#F7F3EC" stroke-width="5" opacity="0.6"/>
+  <circle cx="96" cy="104" r="34" fill="#F7F3EC" opacity="0.15"/>
+  <!-- Vork (links) -->
+  <line x1="62" y1="54" x2="62" y2="96" stroke="#F7F3EC" stroke-width="4" stroke-linecap="round"/>
+  <line x1="57" y1="54" x2="57" y2="70" stroke="#F7F3EC" stroke-width="3" stroke-linecap="round"/>
+  <line x1="62" y1="54" x2="62" y2="70" stroke="#F7F3EC" stroke-width="3" stroke-linecap="round"/>
+  <line x1="67" y1="54" x2="67" y2="70" stroke="#F7F3EC" stroke-width="3" stroke-linecap="round"/>
+  <!-- Mes (rechts) -->
+  <path d="M130 54 Q136 70 130 80 L130 155" stroke="#F7F3EC" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <!-- T & W tekst -->
+  <text x="96" y="111" font-family="Georgia, serif" font-size="28" font-weight="400" text-anchor="middle" fill="#F7F3EC" letter-spacing="2" opacity="0.9">T&amp;W</text>
+</svg>

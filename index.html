@@ -1,0 +1,2741 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Tafel &amp; Week — Maaltijdplanner</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3D6B41">
+
+<!-- iOS "Voeg toe aan beginscherm" -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Maaltijdplanner">
+<link rel="apple-touch-icon" href="icon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "DM Sans", sans-serif; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #C4B496; border-radius: 3px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+
+const RECEPTEN_RAW = [
+  {url:"https://www.ah.nl/allerhande/recept/R-R1200826/spaghetti-met-courgettesaus-en-zwarte-kikkererwten",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1198095/orzo-met-spinazie-a-la-creme-en-gegrilde-courgette",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1199649/plaattaart-met-feta-winterpeen-en-rode-ui",notes:"",rating:4,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1196011/gezonde-loaded-fries",notes:"",rating:4,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1198764/vegan-stoof-van-spitskool-in-tomatensaus-en-olijven",notes:"",rating:0,dagen:2,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1201361/gezonde-lasagne-met-spinazie-en-ricotta",notes:"",rating:0,dagen:2,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1198937/tiktok-wraps",notes:"",rating:4,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1185835/orzosalade",notes:"",rating:0,dagen:0,tags:["BBQ"],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1199143/risotto-met-champignons-en-mascarpone-van-maggi-advertentie",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1200878/romige-witte-bonenstoof-met-spinazie-en-naan",notes:"",rating:0,dagen:2,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1197533/noedels-met-kip-broccoli-en-sojabonen",notes:"",rating:0,dagen:1,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1199099/noedels-met-wokgroente-en-vega-rulgehackt",notes:"",rating:0,dagen:1,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1200895/traybake-met-winterpeen-en-whipped-cottagecheese",notes:"",rating:0,dagen:1,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1199358/orzo-met-witte-bonen-venkel-en-miso-van-hugo-kennis",notes:"",rating:0,dagen:1,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1200880/broccoli-tuinerwtenstamppot-met-dille-en-noten",notes:"",rating:0,dagen:1,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1198776/vegan-traybake-met-pompoen-boerenkool-en-aubergine",notes:"",rating:0,dagen:1,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1200463/groente-nasi-met-omeletreepjes",notes:"- Bloemkoolrijst\n- Nepkip\n- Saté saus (calve)\n- Boemboe AH\n- Atjar, gebakken uitjes, kroepoek",rating:5,dagen:2,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1188858/watermeloensalade",notes:"",rating:5,dagen:1,tags:["BBQ"],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1199966/romige-tagliatelle-met-zalm",notes:"",rating:0,dagen:1,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1200124/kruidige-bloemkoolschotel-met-kaas",notes:"",rating:5,dagen:1,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1198946/baked-feta-pasta",notes:"",rating:5,dagen:1,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1193427/mac-and-cheese-met-groente-van-jamie-oliver",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1191140/pompoen-knolselderijstamppot-met-paddenstoelenjus",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1199214/griekse-ovenschotel-met-orzo-kikkererwten-giouvetsi",notes:"",rating:0,dagen:2,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1198475/witlof-aardappelsalade-met-cannelinibonen-spinazie-en-druiven",notes:"",rating:0,dagen:0,tags:["BBQ"],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1198552/vega-butter-chicken-met-ananas-van-fairtrade-advertentie",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1197271/pompoenstoof-met-vegetarische-bratwurst",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1197272/prei-ovenschotel-met-vega-speckjes",notes:"- uien en champignons toevoegen",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1196211/chili-sin-carne",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1195579/traybake-met-zoete-aardappel-en-knapperige-halloumi",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1190580/mexicaanse-salade-met-mais-avocado-en-mango",notes:"",rating:5,dagen:0,tags:["BBQ"],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1194816/pompoen-mac-and-cheese",notes:"- Courgette, gehackt, meer kaas, prei, champignons",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1192980/quiche-met-pompoen-bloemkool-en-feta",notes:"- 2 zakken sla\n- Kipstuckjes toevoegen",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R767114/rode-bieten-stamppot",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1197444/vegan-bonenstoof-met-tijm-en-miso",notes:"",rating:0,dagen:2,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1195297/orecchiette-met-spinazie-en-kruiden",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1193646/tortellini-ovenschotel-met-pesto-en-geroosterde-tomaatjes",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1198272/vegetarische-quiche-met-prei",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1194642/zalm-met-kastanjechampignons-paprika-en-linzen-uit-de-oven",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R338026/plaattaart-met-zomergroenten",notes:"",rating:4,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1195575/traybake-met-gnocchi-feta-en-snoeptomaat",notes:"",rating:5,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1193043/spaghetti-bolognese-met-vegetarisch-rulstukjes",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1195933/gezonde-andijviestamppot-met-witlof-kaas-en-gekookt-ei",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1195288/couscoussalade-met-courgette-en-witte-kaas",notes:"",rating:0,dagen:0,tags:["BBQ"],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1197608/stamppot-met-geroosterde-prei-en-gebakken-bonen",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1195866/tikka-masala-met-vegetarische-kipstukjes-en-bloemkoolrijst",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1193623/griekse-rijstschotel-uit-de-oven",notes:"- kaneel en dille\n- Kipstukjes\n- Courgette, paprika, rode ui, wortel",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1193422/pastinaakstamppot-met-paddenstoelen-en-bacon",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1195895/stoof-met-donker-bier-paddenstoelen-en-pastinaak",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1197449/vegetarische-shepherd-s-pie-met-pastinaak-en-champignons",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1195883/macaroni-ovenschotel-met-vegaburger-gehakt-tomaat-en-mozzarella",notes:"- paprika en courgette\n- Strooikaas erbij!",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1195618/vegan-stoof",notes:"- pompoen er bij\n- Aardappelpuree\n- Max 2 takken rozemarijn",rating:0,dagen:2,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1195057/vegetarische-gevulde-paprikas",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1195253/traybake-met-feta-tomaat-asperges-en-olijven",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1194139/gebakken-noedels-met-vega-gehakt-en-pindasaus",notes:"Kastanje champignons peultjes + Japanse groentezak",rating:0,dagen:0,tags:[],nick:"Pindakaas noodles"},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1192268/plaattaart-van-zoete-aardappel-rode-biet-en-feta",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1185154/bonen-venkelsalade",notes:"",rating:0,dagen:0,tags:["BBQ"],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R726384/zomerstamppotje",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R767198/zuurkool-met-stoofpeertjes",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1187268/rucolasalade-met-gegrilde-nectarine",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1185077/pompoensoep-uit-de-oven",notes:"",rating:0,dagen:0,tags:["Kerst"],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R524776/linzenmaaltijdsoep",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1185944/spinazie-bietensalade-met-feta-en-sinaasappel",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R559646/spinaziecurry-met-kaas-en-naanbrood",notes:"- Kipstukjes er bij",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R421210/stamppot-vergeten-groenten-met-rookworst",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1187668/pompoensoep-met-linzen-feta-en-knapperig-brood",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R719756/italiaanse-stamppot-met-aubergine",notes:"- Maar één dag lekker!\n- Eventueel pijnboompitten",rating:0,dagen:1,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1187998/rodekool-knolselderijstamppot",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R986108/pompoenstoof",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1186637/macaroni-ovenschotel-met-broccoli",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1190760/libanese-wraps-met-falafel-witte-kaas-en-gegrilde-groenten",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1185761/thaise-kokossoep-met-kip-en-noedels",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1189376/enchilada-s-met-kidneybonenchili",notes:"- Tomaten pulp!\n- Niet te zoet\n- Aardappels lang bakken\n- Gehackt erbij\n- Cheddar + creme fraiche",rating:5,dagen:2,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R438604/zomerstamppot-van-spinazie-en-rode-ui",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1030774/linguine-met-chorizo-tomaat-en-geitenkaas",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1185044/gehaktschotel-met-roomkaaspuree",notes:"- Zakje broccoli/bloemkool/wortels\n- Echte aardappelpuree!\n- Groente stoven",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R1188103/rijkgevulde-kruidige-linzensoep-met-tomaat-en-kikkererwten",notes:"",rating:0,dagen:0,tags:["Kerst"],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R411494/hartige-courgettetaart-met-zalm",notes:"",rating:0,dagen:0,tags:[],nick:""},
+  {url:"https://www.ah.nl/allerhande/recept/R-R668636/chili-van-witte-en-groene-bonen",notes:"- Grote crème fraiche\n- Gehackt\n- Lima + groene kidney + kikkererwten\n- Nacho chips met kaas",rating:0,dagen:0,tags:[],nick:"Groene bonen chili"},
+  {url:"https://www.ah.nl/allerhande/recept/R-R8310/preistamppot-met-gedroogde-tomaatjes",notes:"",rating:0,dagen:0,tags:[],nick:""}
+];
+
+const G = {
+  groen: "#2C4A2E", groenMid: "#4A7A4E", groenLicht: "#8AB08C",
+  groenZacht: "#D4E6D5", groenPale: "#EEF6EE",
+  zand: "#F5F0E8", zandMid: "#E8DEC8", zandDonker: "#C4B496", zandDeep: "#8C7A5C",
+  tekst: "#1E2E1E", tekstMid: "#4A5A4A", tekstZacht: "#7A8A7A", kaart: "#FFFFFF"
+};
+
+function toNaam(url) {
+  return url.split("/").pop().replace(/-/g, " ").replace(/^./, c => c.toUpperCase());
+}
+function toImg(url) {
+  const m = url.match(/R-R(\d+)/);
+  return m ? `https://static.ah.nl/static/recepten/img_${m[1]}_300x300_FP.jpg` : null;
+}
+function toSeizoen(naam) {
+  const s = naam.toLowerCase();
+  const sz = new Set();
+
+  // Lente — verse jonge groenten, asperges, erwten
+  if (["asperge","radijs","tuinerwt","doperwt","rucola"].some(w => s.includes(w))) sz.add("lente");
+  // Prei en spinazie zijn lente & winter
+  if (s.includes("spinazie")) { sz.add("lente"); sz.add("winter"); }
+  if (s.includes("prei")) { sz.add("lente"); sz.add("winter"); }
+  // Venkel lente & herfst
+  if (s.includes("venkel")) { sz.add("lente"); sz.add("herfst"); }
+
+  // Zomer — mediterraan, grill, salades, zomergroenten
+  if (["watermeloen","nectarine","mango","mais","avocado","zomer","gegrild",
+       "snoeptomaat","halloumi","feta"].some(w => s.includes(w))) sz.add("zomer");
+  if (s.includes("courgette")) { sz.add("zomer"); sz.add("lente"); }
+  if (s.includes("aubergine")) { sz.add("zomer"); sz.add("herfst"); }
+  if (s.includes("tomaat") || s.includes("tomaatje")) { sz.add("zomer"); sz.add("herfst"); }
+  if (s.includes("paprika")) { sz.add("zomer"); sz.add("herfst"); }
+  if (["salade","couscoussalade","orzosalade","bietensalade","watermeloen"].some(w => s.includes(w))) sz.add("zomer");
+
+  // Herfst — pompoenen, paddenstoelen, wortelgroenten, stoofperen
+  if (["pompoen","knolsel","pastinaak","stoofpeer","kastanje",
+       "rode biet","winterpeen"].some(w => s.includes(w))) sz.add("herfst");
+  if (s.includes("biet")) sz.add("herfst");
+  if (s.includes("wortel") || s.includes("peen")) { sz.add("herfst"); sz.add("winter"); }
+  if (s.includes("paddenstoel") || s.includes("champignon")) { sz.add("herfst"); sz.add("winter"); }
+  if (s.includes("appel") || s.includes("peer")) sz.add("herfst");
+  if (s.includes("boerenkool")) { sz.add("herfst"); sz.add("winter"); }
+  if (s.includes("rodekool")) { sz.add("herfst"); sz.add("winter"); }
+
+  // Winter — stamppot, stoof, zuurkool, peulvruchten, soep
+  if (["stamppot","zuurkool","hutspot","snert","erwt"].some(w => s.includes(w))) sz.add("winter");
+  if (s.includes("stoof")) { sz.add("herfst"); sz.add("winter"); }
+  if (["linzen","kikkererwt","boon","bonen"].some(w => s.includes(w))) { sz.add("herfst"); sz.add("winter"); }
+  if (s.includes("soep")) { sz.add("herfst"); sz.add("winter"); }
+  if (s.includes("andijvie") || s.includes("witlof") || s.includes("spitskool")) sz.add("winter");
+  if (s.includes("naan") || s.includes("curry") || s.includes("tikka") || s.includes("butter chicken")) {
+    sz.add("herfst"); sz.add("winter");
+  }
+
+  // Jaarrond — pasta, rijst, noedels, wraps, pizza
+  if (["spaghetti","lasagne","tagliatelle","linguine","macaroni","orecchiette",
+       "tortellini","orzo","pasta"].some(w => s.includes(w))) {
+    ["lente","zomer","herfst","winter"].forEach(x => sz.add(x));
+  }
+  if (["nasi","rijst","risotto","noedel","noodle","wrap","enchilada","tiktok"].some(w => s.includes(w))) {
+    ["lente","zomer","herfst","winter"].forEach(x => sz.add(x));
+  }
+  if (["quiche","taart","plaattaart"].some(w => s.includes(w))) {
+    // Quiches zijn seizoensgebonden aan hun vulling — al gedekt hierboven
+    // Als nog niets, voeg herfst+winter toe als default voor hartige taarten
+    if (sz.size === 0) { sz.add("herfst"); sz.add("winter"); }
+  }
+
+  return [...sz];
+}
+
+const initRecepten = RECEPTEN_RAW.map((r, i) => ({
+  ...r, id: i, naam: toNaam(r.url),
+  seizoen: toSeizoen(toNaam(r.url)),
+  imageUrl: toImg(r.url), laatstGemaakt: null,
+  tags: [...r.tags], rating: r.rating || 0,
+  gemaaktData: [], favoriet: false
+}));
+
+const DAGEN = [
+  { key: "maandag", label: "Maandag", dagNr: 1 },
+  { key: "dinsdag", label: "Dinsdag", dagNr: 2 },
+  { key: "woensdag", label: "Woensdag", dagNr: 3 },
+  { key: "donderdag", label: "Donderdag", dagNr: 4 },
+];
+
+// Geeft de datum van de aankomende [dagNr] (1=ma, 2=di etc.) als DD/MM string
+function komendeDatum(dagNr) {
+  const nu = new Date();
+  const huidigeDag = nu.getDay(); // 0=zo, 1=ma ... 6=za
+  // Dagen tot de gewenste weekdag (altijd vooruit, max 7 dagen)
+  const maandag = new Date(nu);
+  const dagenTotMaandag = (1 - huidigeDag + 7) % 7 || 7; // altijd volgende maandag
+  maandag.setDate(nu.getDate() + dagenTotMaandag + (dagNr - 1));
+  const d = String(maandag.getDate()).padStart(2, "0");
+  const m = String(maandag.getMonth() + 1).padStart(2, "0");
+  return `${d}/${m}`;
+}
+
+// Geeft ISO datumstring (YYYY-MM-DD) van de aankomende dagNr
+function komendeDatumISO(dagNr) {
+  const nu = new Date();
+  const huidigeDag = nu.getDay();
+  const maandag = new Date(nu);
+  const dagenTotMaandag = (1 - huidigeDag + 7) % 7 || 7;
+  maandag.setDate(nu.getDate() + dagenTotMaandag + (dagNr - 1));
+  return maandag.toISOString().split("T")[0];
+}
+
+const initPlanning = {
+  maandag: { thuiswerk: true, personen: 4, recept: null },
+  dinsdag: { thuiswerk: false, personen: 4, recept: null },
+  woensdag: { thuiswerk: true, personen: 4, recept: null },
+  donderdag: { thuiswerk: false, personen: 4, recept: null },
+};
+
+const NIET_VEGA = ["kip","bacon","chorizo","rookworst","zalm"];
+
+function Sterren({ rating, size = 11 }) {
+  return <span style={{ color: G.zandDeep, fontSize: size }}>
+    {"★".repeat(rating)}{"☆".repeat(5 - rating)}
+  </span>;
+}
+
+function HartjeKnop({ favoriet, onToggle, size = 18 }) {
+  return (
+    <span
+      onClick={e => { e.stopPropagation(); onToggle(); }}
+      title={favoriet ? "Verwijder uit favorieten" : "Markeer als favoriet"}
+      style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", transition: "transform .15s" }}
+      onMouseEnter={e => e.currentTarget.style.transform = "scale(1.2)"}
+      onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+    >
+      <svg width={size} height={size} viewBox="0 0 24 24" fill={favoriet ? "#2C4A2E" : "none"} stroke={favoriet ? "#2C4A2E" : "#8AB08C"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+      </svg>
+    </span>
+  );
+}
+
+function ReceptKaart({ recept, onClick, onToggleFavoriet, compact = false }) {
+  const [imgErr, setImgErr] = useState(false);
+  const seizoenenArr = Array.isArray(recept.seizoen) ? recept.seizoen : recept.seizoen ? [recept.seizoen] : [];
+  return (
+    <div onClick={onClick} style={{
+      background: G.kaart, borderRadius: 12,
+      border: `1px solid ${recept.favoriet ? G.groenLicht : G.zandMid}`,
+      overflow: "hidden", cursor: "pointer", transition: "all .15s", position: "relative",
+    }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 2px 12px rgba(44,74,46,.1)"; e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.borderColor = G.groenLicht; }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = recept.favoriet ? G.groenLicht : G.zandMid; }}
+    >
+      {/* Foto */}
+      <div style={{ position: "relative" }}>
+        {recept.imageUrl && !imgErr
+          ? <img src={recept.imageUrl} onError={() => setImgErr(true)} style={{ width: "100%", height: compact ? 90 : 120, objectFit: "cover", display: "block" }} />
+          : <div style={{ width: "100%", height: compact ? 90 : 120, background: G.groenPale, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>🥗</div>
+        }
+        {/* Hartje overlay op foto */}
+        {onToggleFavoriet && (
+          <div style={{ position: "absolute", top: 6, right: 7, background: "rgba(255,255,255,0.85)", borderRadius: "50%", width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,.12)" }}>
+            <HartjeKnop favoriet={recept.favoriet} onToggle={onToggleFavoriet} size={15} />
+          </div>
+        )}
+      </div>
+
+      <div style={{ padding: "10px 12px" }}>
+        <div style={{ fontSize: 12.5, fontWeight: 500, color: G.tekst, lineHeight: 1.3 }}>{recept.naam}</div>
+        {recept.nick && <div style={{ fontSize: 10.5, color: G.tekstZacht, fontStyle: "italic", marginTop: 2 }}>{recept.nick}</div>}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 7 }}>
+          <Sterren rating={recept.rating} />
+          <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+            {recept.favoriet && !onToggleFavoriet && (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill={G.groen} stroke={G.groen} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+            )}
+            {recept.dagen > 0 && <span style={{ fontSize: 9.5, background: G.groenPale, color: G.groenMid, padding: "2px 5px", borderRadius: 10 }}>{recept.dagen}d</span>}
+          </div>
+        </div>
+        {(recept.tags.length > 0 || seizoenenArr.length > 0) && (
+          <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginTop: 6 }}>
+            {seizoenenArr.map(s => <span key={s} style={{ fontSize: 9.5, padding: "1px 6px", background: "#E8F5E9", color: G.groenMid, borderRadius: 10 }}>{s}</span>)}
+            {recept.tags.map(t => <span key={t} style={{ fontSize: 9.5, padding: "1px 6px", background: G.zand, color: G.zandDeep, borderRadius: 10, border: `1px solid ${G.zandMid}` }}>{t}</span>)}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SelectModal({ dagLabel, onSelect, onClose, recepten: receptenLijst }) {
+  const [zoek, setZoek] = useState("");
+  const filtered = receptenLijst.filter(r => (r.naam + " " + r.nick).toLowerCase().includes(zoek.toLowerCase()));
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(30,46,30,.5)", zIndex: 200, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" }}>
+      <div style={{ background: G.kaart, borderRadius: 12, width: "100%", maxWidth: 560, boxShadow: "0 8px 40px rgba(44,74,46,.2)" }}>
+        <div style={{ background: G.groen, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderRadius: "12px 12px 0 0" }}>
+          <div>
+            <div style={{ fontFamily: "Georgia,serif", fontSize: 17, color: "#fff" }}>Kies een recept</div>
+            <div style={{ fontSize: 11, color: G.groenLicht, marginTop: 2 }}>{dagLabel}</div>
+          </div>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,.15)", border: "none", color: "#fff", width: 28, height: 28, borderRadius: "50%", cursor: "pointer", fontSize: 14 }}>✕</button>
+        </div>
+        <div style={{ padding: 16 }}>
+          <input value={zoek} onChange={e => setZoek(e.target.value)} placeholder="Zoek recept..." style={{ width: "100%", border: `1px solid ${G.zandMid}`, borderRadius: 8, padding: "7px 10px", fontSize: 13, color: G.tekst, background: G.kaart, outline: "none", marginBottom: 12 }} />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: 10, maxHeight: 380, overflowY: "auto" }}>
+            {filtered.map(r => <ReceptKaart key={r.id} recept={r} compact onClick={() => onSelect(r)} />)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Alle unieke tags in de database
+function alleTagsUitDatabase(recepten) {
+  const set = new Set();
+  recepten.forEach(r => r.tags.forEach(t => set.add(t)));
+  return [...set].sort();
+}
+
+function ReceptDetailModal({ recept, alleRecepten, onClose, onSave }) {
+  const [notes, setNotes] = useState(recept.notes);
+  const [seizoenen, setSeizoeenen] = useState(
+    Array.isArray(recept.seizoen) ? [...recept.seizoen] : recept.seizoen ? [recept.seizoen] : []
+  );
+  const [tags, setTags] = useState([...recept.tags]);
+  const [nieuweTag, setNieuweTag] = useState("");
+  const [rating, setRating] = useState(recept.rating || 0);
+  const [favoriet, setFavoriet] = useState(recept.favoriet || false);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [gemaaktData, setGemaaktData] = useState(
+    Array.isArray(recept.gemaaktData) ? [...recept.gemaaktData] : recept.laatstGemaakt ? [recept.laatstGemaakt] : []
+  );
+  const [imgErr, setImgErr] = useState(false);
+  const isNietVega = NIET_VEGA.some(w => recept.naam.toLowerCase().includes(w));
+
+  const bestaandeTags = alleTagsUitDatabase(alleRecepten).filter(t => !tags.includes(t));
+
+  const toggleSeizoen = (s) => {
+    setSeizoeenen(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
+  };
+
+  const voegTagToe = (t) => {
+    const val = (t || nieuweTag).trim();
+    if (val && !tags.includes(val)) {
+      setTags([...tags, val]);
+      setNieuweTag("");
+    }
+  };
+
+  const markeerGemaakt = () => {
+    const nu = new Date().toISOString();
+    setGemaaktData(prev => [nu, ...prev]);
+  };
+
+  const formatDatum = (iso) => new Date(iso).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(30,46,30,.55)", zIndex: 200, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" }}>
+      <div style={{ background: G.kaart, borderRadius: 12, width: "100%", maxWidth: 520, boxShadow: "0 8px 40px rgba(44,74,46,.18)" }}>
+        {/* Header */}
+        <div style={{ background: G.groen, padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderRadius: "12px 12px 0 0" }}>
+          <div>
+            <div style={{ fontFamily: "Georgia,serif", fontSize: 17, color: "#fff", lineHeight: 1.3 }}>{recept.naam}</div>
+            {recept.nick && <div style={{ fontSize: 11, color: G.groenLicht, fontStyle: "italic", marginTop: 2 }}>{recept.nick}</div>}
+          </div>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,.15)", border: "none", color: "#fff", width: 26, height: 26, borderRadius: "50%", cursor: "pointer", fontSize: 14, flexShrink: 0 }}>✕</button>
+        </div>
+
+        <div style={{ padding: "18px 20px", maxHeight: "72vh", overflowY: "auto" }}>
+          {recept.imageUrl && !imgErr && <img src={recept.imageUrl} onError={() => setImgErr(true)} style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 8, marginBottom: 14, display: "block" }} />}
+
+          {/* Top meta row */}
+          <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
+            {recept.dagen > 0 && (
+              <span style={{ fontSize: 11, background: G.groenPale, color: G.groenMid, padding: "2px 7px", borderRadius: 10 }}>
+                {recept.dagen} dag{recept.dagen > 1 ? "en" : ""}
+              </span>
+            )}
+            <a href={recept.url} target="_blank" rel="noreferrer" style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, color: G.groenMid, textDecoration: "none", padding: "3px 8px", border: `1px solid ${G.groenZacht}`, borderRadius: 7 }}>
+              ↗ AH recept
+            </a>
+          </div>
+
+          {isNietVega && (
+            <div style={{ background: "#FFF8E6", border: "1px solid #E8C96A", borderRadius: 8, padding: "9px 11px", fontSize: 11.5, color: "#7A6020", marginBottom: 14 }}>
+              💡 Mogelijk vlees/vis — vervang door vega-variant (bijv. vega kipstukjes of extra bonen).
+            </div>
+          )}
+
+          {/* Favoriet */}
+          <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
+            <HartjeKnop favoriet={favoriet} onToggle={() => setFavoriet(f => !f)} size={22} />
+            <span style={{ fontSize: 12.5, color: favoriet ? G.groen : G.tekstZacht, fontWeight: favoriet ? 500 : 400 }}>
+              {favoriet ? "Favoriet recept" : "Toevoegen aan favorieten"}
+            </span>
+          </div>
+
+          {/* Rating */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 7 }}>Jouw rating</div>
+            <div style={{ display: "flex", gap: 4 }}>
+              {[1,2,3,4,5].map(n => (
+                <span
+                  key={n}
+                  onClick={() => setRating(n === rating ? 0 : n)}
+                  onMouseEnter={() => setHoverRating(n)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  style={{ fontSize: 26, cursor: "pointer", color: n <= (hoverRating || rating) ? "#C4940A" : G.zandMid, transition: "color .1s", lineHeight: 1 }}
+                >★</span>
+              ))}
+              {rating > 0 && (
+                <span style={{ fontSize: 11.5, color: G.tekstZacht, alignSelf: "center", marginLeft: 4 }}>
+                  {["","Slecht","Matig","Goed","Lekker","Heerlijk!"][rating]}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Notities */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 5 }}>Persoonlijke notities</div>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} style={{ width: "100%", border: `1px solid ${G.zandMid}`, borderRadius: 8, padding: "7px 9px", fontSize: 12, color: G.tekst, resize: "vertical", minHeight: 65, background: G.zand, outline: "none", fontFamily: "inherit" }} placeholder="Eigen notities..." />
+          </div>
+
+          {/* Seizoen — meerdere mogelijk */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 6 }}>Seizoen <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, fontSize: 10, color: G.tekstZacht }}>(meerdere mogelijk)</span></div>
+            <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+              {["lente","zomer","herfst","winter"].map(s => {
+                const actief = seizoenen.includes(s);
+                return (
+                  <button key={s} onClick={() => toggleSeizoen(s)} style={{ padding: "4px 12px", borderRadius: 20, border: `1px solid ${actief ? G.groen : G.zandMid}`, background: actief ? G.groen : G.zand, color: actief ? "#fff" : G.tekstMid, fontSize: 11.5, cursor: "pointer", transition: "all .12s" }}>
+                    {s}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 6 }}>Tags</div>
+            {/* Actieve tags */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
+              {tags.map(t => (
+                <span key={t} style={{ fontSize: 10.5, padding: "3px 9px", background: G.groenPale, color: G.groenMid, borderRadius: 20, display: "flex", alignItems: "center", gap: 3 }}>
+                  {t}
+                  <span onClick={() => setTags(tags.filter(x => x !== t))} style={{ cursor: "pointer", fontSize: 11, color: G.groenLicht, lineHeight: 1 }}>✕</span>
+                </span>
+              ))}
+            </div>
+            {/* Bestaande tags om snel te kiezen */}
+            {bestaandeTags.length > 0 && (
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 10, color: G.tekstZacht, marginBottom: 5 }}>Snel toevoegen:</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  {bestaandeTags.map(t => (
+                    <span key={t} onClick={() => voegTagToe(t)} style={{ fontSize: 10.5, padding: "3px 9px", background: G.zand, color: G.zandDeep, borderRadius: 20, border: `1px dashed ${G.zandDonker}`, cursor: "pointer", transition: "all .1s" }}
+                      onMouseEnter={e => { e.currentTarget.style.background = G.groenPale; e.currentTarget.style.color = G.groenMid; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = G.zand; e.currentTarget.style.color = G.zandDeep; }}>
+                      + {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Nieuwe tag typen */}
+            <div style={{ display: "flex", gap: 5 }}>
+              <input value={nieuweTag} onChange={e => setNieuweTag(e.target.value)} onKeyDown={e => e.key === "Enter" && voegTagToe()} placeholder="Nieuwe tag typen..." style={{ flex: 1, border: `1px solid ${G.zandMid}`, borderRadius: 7, padding: "5px 8px", fontSize: 11.5, background: G.zand, outline: "none", color: G.tekst }} />
+              <button onClick={() => voegTagToe()} style={{ padding: "5px 11px", background: G.groen, color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontSize: 12 }}>+</button>
+            </div>
+          </div>
+
+          {/* Gemaakt historie */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 6 }}>Gemaakt op</div>
+            {gemaaktData.length === 0 ? (
+              <div style={{ fontSize: 11.5, color: G.tekstZacht, marginBottom: 6 }}>Nog niet geregistreerd</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 8 }}>
+                {gemaaktData.slice(0, 5).map((d, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 12, color: i === 0 ? G.tekst : G.tekstMid }}>{formatDatum(d)}</span>
+                    {i === 0 && <span style={{ fontSize: 10, background: G.groenPale, color: G.groenMid, padding: "1px 6px", borderRadius: 10 }}>laatste keer</span>}
+                  </div>
+                ))}
+                {gemaaktData.length > 5 && <div style={{ fontSize: 11, color: G.tekstZacht }}>+ {gemaaktData.length - 5} eerdere keren</div>}
+              </div>
+            )}
+            <button onClick={markeerGemaakt} style={{ padding: "5px 12px", background: "transparent", border: `1px solid ${G.zandMid}`, color: G.tekstMid, borderRadius: 7, cursor: "pointer", fontSize: 11.5 }}>
+              + Vandaag gemaakt
+            </button>
+          </div>
+
+          {/* Opslaan */}
+          <button
+            onClick={() => onSave({ notes, seizoen: seizoenen, tags, rating, gemaaktData, favoriet, laatstGemaakt: gemaaktData[0] || recept.laatstGemaakt })}
+            style={{ width: "100%", padding: "8px 14px", background: G.groen, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 500 }}
+          >
+            Opslaan
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── PAGINA: WEEKPLANNING ───────────────────────────────────────────────────
+function PlannerPage({ planning, setPlanning, recepten }) {
+  const [weekend, setWeekend] = useState({ vrijdag: "", zaterdag: "", zondag: "" });
+  const [weer, setWeer] = useState([]);
+  const [uploadNaam, setUploadNaam] = useState("");
+  const [pdfIngredienten, setPdfIngredienten] = useState([]);
+  const [pdfStatus, setPdfStatus] = useState(""); // "" | "laden" | "ok" | "leeg" | "fout"
+  const [factuurTab, setFactuurTab] = useState("plak"); // "upload" | "plak"
+  const [plakTekst, setPlakTekst] = useState("");
+  const [plakStatus, setPlakStatus] = useState(""); // "" | "laden" | "ok"
+  const [handmatigInput, setHandmatigInput] = useState("");
+  const [handmatigIngr, setHandmatigIngr] = useState([]);
+  const [selectDag, setSelectDag] = useState(null);
+  const [aiBezig, setAiBezig] = useState(false);
+  const [aiResultaat, setAiResultaat] = useState("");
+
+  useEffect(() => {
+    fetch("https://api.open-meteo.com/v1/forecast?latitude=51.42&longitude=5.56&daily=temperature_2m_max,weathercode&forecast_days=7&timezone=Europe%2FAmsterdam")
+      .then(r => r.json())
+      .then(d => {
+        if (!d.daily) return;
+        const items = d.daily.time.map((t, i) => {
+          const dag = new Date(t);
+          const naam = ["zo","ma","di","wo","do","vr","za"][dag.getDay()];
+          const code = d.daily.weathercode[i];
+          const icon = code <= 1 ? "☀️" : code <= 3 ? "⛅" : code <= 67 ? "🌧️" : "❄️";
+          return { naam, icon, temp: Math.round(d.daily.temperature_2m_max[i]) };
+        });
+        setWeer(items);
+      }).catch(() => {});
+  }, []);
+
+  // PDF tekst parsen voor ingrediënten
+  const handlePDFChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadNaam(file.name);
+    setPdfIngredienten([]);
+    setPdfStatus("laden");
+
+    try {
+      // Lees PDF als base64
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Stuur naar Claude API als PDF document
+      const data = await claudeFetch({
+        model: "claude-sonnet-4-5",
+        max_tokens: 500,
+        messages: [{
+          role: "user",
+          content: [
+            {
+              type: "document",
+              source: { type: "base64", media_type: "application/pdf", data: base64 }
+            },
+            {
+              type: "text",
+              text: "Dit is een Albert Heijn kassabon of factuur. Geef een lijst van alle INGREDIENTEN en LEVENSMIDDELEN die je herkent. Geef ALLEEN de productnamen terug, elk op een nieuwe regel, zonder nummers, hoeveelheden, prijzen of andere tekst. Geen inleiding. Alleen de namen, maximaal 40 items."
+            }
+          ]
+        }]
+      });
+      const tekst = data.content?.[0]?.text || "";
+
+      if (!tekst.trim()) {
+        setPdfStatus("leeg");
+        return;
+      }
+
+      // Verwerk de response: elke regel is een ingrediënt
+      const items = tekst
+        .split("\n")
+        .map(r => r.replace(/^[-•*\d.]+\s*/, "").trim())
+        .filter(r => r.length > 1 && r.length < 60)
+        .map(r => r.charAt(0).toUpperCase() + r.slice(1))
+        .slice(0, 40);
+
+      setPdfIngredienten(items);
+      setPdfStatus(items.length > 0 ? "ok" : "leeg");
+    } catch(err) {
+      console.error("PDF fout:", err.message);
+      if (err.message && err.message.includes("401")) {
+        setPdfStatus("geen-key");
+      } else {
+        setPdfStatus("fout");
+      }
+    }
+  };
+
+  const voegHandmatigToe = () => {
+    const items = handmatigInput.split(/[,;\n]+/).map(s => s.trim()).filter(s => s.length > 1);
+    if (items.length === 0) return;
+    setHandmatigIngr(prev => {
+      const nieuw = items.filter(i => !prev.includes(i));
+      return [...prev, ...nieuw];
+    });
+    setHandmatigInput("");
+  };
+
+  const verwijderHandmatig = (item) => setHandmatigIngr(prev => prev.filter(i => i !== item));
+  const verwijderPdf = (item) => setPdfIngredienten(prev => prev.filter(i => i !== item));
+
+  // Lokale tekstparser — werkt altijd, ook zonder API key
+  const BEKENDE_INGREDIENTEN = [
+    "pasta","spaghetti","tagliatelle","macaroni","orzo","rijst","noedels","couscous","quinoa","bulgur",
+    "spinazie","broccoli","courgette","paprika","ui","wortel","peen","prei","knoflook","tomaten","tomaat",
+    "champignons","champignon","aubergine","pompoen","bloemkool","boerenkool","andijvie","witlof","venkel",
+    "sperziebonen","peultjes","spruitjes","savooiekool","spitskool","rodekool","witlof","radicchio",
+    "kikkererwten","linzen","bonen","kidney","doperwten","mais","edamame","witte bonen","bruine bonen",
+    "ei","eieren","melk","room","kaas","feta","mozzarella","ricotta","yoghurt","creme fraiche","mascarpone",
+    "cottage cheese","kwark","halloumi","geitenkaas","parmezaan","cheddar",
+    "boter","olijfolie","zonnebloemolie","kokosvet",
+    "pesto","tomatensaus","passata","kokosmelk","bouillon","sojasaus","ketjap","miso","tahini","sambal",
+    "bloem","paneermeel","brood","naan","tortilla","wraps","pitabrood",
+    "zalm","tonijn","garnalen","makreel","sardines","kabeljauw",
+    "citroen","limoen","sinaasappel","appel","peer","mango","avocado","mais",
+    "noten","pijnboompitten","amandelen","walnoten","cashewnoten","hazelnoten","sesamzaad","chiazaad",
+    "basilicum","peterselie","dille","oregano","tijm","rozemarijn","koriander","munt","bieslook",
+    "gember","kurkuma","paprikapoeder","komijn","kaneel","kardemom","chilipoeder","kerrie",
+    "azijn","balsamico","mosterd","honing","ahornsiroop","suiker","zout",
+    "tofu","tempeh","seitan","quorn",
+    "aardappelen","aardappel","zoete aardappel","bataat"
+  ];
+
+  const parseTekstLokaal = (tekst) => {
+    const regels = tekst.split(/[\n,;]+/);
+    const gevonden = new Set();
+    regels.forEach(regel => {
+      const r = regel.toLowerCase().trim();
+      BEKENDE_INGREDIENTEN.forEach(ing => {
+        if (r.includes(ing)) {
+          gevonden.add(ing.charAt(0).toUpperCase() + ing.slice(1));
+        }
+      });
+      // Ook losse woorden van 4+ tekens die geen prijs/getal zijn
+      const woorden = r.split(/\s+/);
+      woorden.forEach(w => {
+        if (w.length >= 4 && !/[\d€.,]/.test(w) && !/^(voor|met|van|het|een|aan|uit|per|pak|zak|fles|blik|los|vers|bio|ah|bonus)$/.test(w)) {
+          const match = BEKENDE_INGREDIENTEN.find(ing => ing.startsWith(w.substring(0,5)));
+          if (match) gevonden.add(match.charAt(0).toUpperCase() + match.slice(1));
+        }
+      });
+    });
+    return [...gevonden].slice(0, 40);
+  };
+
+  const verwerkPlakTekst = async () => {
+    if (!plakTekst.trim()) return;
+    setPlakStatus("laden");
+
+    // Probeer eerst via API als key beschikbaar is
+    const apiKey = loadApiKey();
+    if (apiKey) {
+      try {
+        const data = await claudeFetch({
+          model: "claude-sonnet-4-5",
+          max_tokens: 400,
+          messages: [{
+            role: "user",
+            content: `Dit is de tekst van een Albert Heijn kassabon of boodschappenlijst. Geef uitsluitend de ingrediënten en levensmiddelen terug die je herkent, elk op een nieuwe regel. Geen hoeveelheden, prijzen of andere tekst. Geen inleiding.\n\n${plakTekst.substring(0, 3000)}`
+          }]
+        });
+        const tekst = data.content?.[0]?.text || "";
+        const items = tekst.split("\n")
+          .map(r => r.replace(/^[-•*\d.]+\s*/, "").trim())
+          .filter(r => r.length > 1 && r.length < 60)
+          .map(r => r.charAt(0).toUpperCase() + r.slice(1))
+          .slice(0, 40);
+        if (items.length > 0) {
+          setPdfIngredienten(prev => [...new Set([...prev, ...items])]);
+          setPlakStatus("ok");
+          setPlakTekst("");
+          return;
+        }
+      } catch(e) {
+        // Val terug op lokale parsing
+      }
+    }
+
+    // Lokale fallback
+    const items = parseTekstLokaal(plakTekst);
+    setPdfIngredienten(prev => [...new Set([...prev, ...items])]);
+    setPlakStatus("ok");
+    setPlakTekst("");
+  };
+
+    const planWeek = () => {
+    const maand = new Date().getMonth();
+    const huidigSeizoen = maand <= 1 || maand === 11 ? "winter" : maand <= 4 ? "lente" : maand <= 7 ? "zomer" : "herfst";
+    const weekendTekst = [weekend.vrijdag, weekend.zaterdag, weekend.zondag].join(" ").toLowerCase();
+    const nu = Date.now();
+    const TWEE_WEKEN = 14 * 24 * 60 * 60 * 1000;
+
+    // Weer samenvatting voor uitleg
+    const gemiddeldTemp = weer.length > 0
+      ? Math.round(weer.slice(0,5).reduce((s,w) => s + w.temp, 0) / Math.min(5, weer.length))
+      : null;
+    const regenDagen = weer.slice(0,5).filter(w => w.icon === "🌧️" || w.icon === "🌦️").length;
+    const weerType = gemiddeldTemp !== null
+      ? (gemiddeldTemp >= 20 ? "warm" : gemiddeldTemp >= 14 ? "lekker" : gemiddeldTemp >= 8 ? "fris" : "koud")
+      : null;
+
+    // Categorie-indeling voor variatie
+    const CATS = {
+      pasta:    ["spaghetti","pasta","orzo","tagliatelle","linguine","macaroni","orecchiette","tortellini","lasagne"],
+      stamppot: ["stamppot"],
+      stoof:    ["stoof","stoofpot"],
+      traybake: ["traybake","plaattaart","ovenschotel"],
+      wrap:     ["wrap","enchilada"],
+      rijst:    ["nasi","rijst","risotto"],
+      soep:     ["soep"],
+      noedels:  ["noedels","noodles"],
+      quiche:   ["quiche","taart"],
+      salade:   ["salade"],
+      curry:    ["curry","tikka","butter"],
+    };
+
+    function getCat(naam) {
+      const n = naam.toLowerCase();
+      for (const [cat, ws] of Object.entries(CATS)) {
+        if (ws.some(w => n.includes(w))) return cat;
+      }
+      return "overig";
+    }
+
+    // Recente gemaaktData (afgelopen 2 weken)
+    function recentGemaakt(r) {
+      if (!r.gemaaktData || r.gemaaktData.length === 0) return false;
+      const laatste = new Date(r.gemaaktData[0]).getTime();
+      return (nu - laatste) < TWEE_WEKEN;
+    }
+
+    // Score: positief = beter
+    function score(r, gebruikteCats) {
+      let s = 0;
+
+      // 1. Rating: 4-5 sterren = goed (kans groot), 1-3 = zelden
+      if (r.rating === 5) s += 8;
+      else if (r.rating === 4) s += 5;
+      else if (r.rating === 3) s += 1;   // soms, niet vaak
+      else if (r.rating <= 2 && r.rating > 0) s -= 2; // bijna nooit
+      else s += 2; // geen rating: neutrale kans
+
+      // 2. Seizoen
+      const inSeizoen = Array.isArray(r.seizoen) ? r.seizoen.includes(huidigSeizoen) : r.seizoen === huidigSeizoen;
+      if (inSeizoen) s += 3;
+      if (!r.seizoen || (Array.isArray(r.seizoen) && r.seizoen.length === 0)) s += 1;
+
+      // 3. Weer-aanpassing
+      if (weerType === "koud" || weerType === "fris") {
+        const troostEten = getCat(r.naam);
+        if (["stoof","stamppot","soep","curry"].includes(troostEten)) s += 2;
+        if (troostEten === "salade") s -= 2;
+      }
+      if (weerType === "warm") {
+        if (getCat(r.naam) === "salade") s += 2;
+        if (["stoof","stamppot"].includes(getCat(r.naam))) s -= 1;
+      }
+
+      // 4. Variatie: straf voor herhaalde categorie
+      if (gebruikteCats.includes(getCat(r.naam))) s -= 5;
+
+      // 5. Weekend overlap vermijden
+      const woorden = r.naam.toLowerCase().split(/[\s-]+/);
+      if (woorden.some(w => w.length > 4 && weekendTekst.includes(w))) s -= 6;
+
+      // 6. Willekeur: kleine toss om niet altijd exact dezelfde top te kiezen
+      s += Math.random() * 0.8;
+
+      return s;
+    }
+
+    // Bepaal of we een 2-daags recept inplannen
+    // Regel: max 1 tweedaags per week, en alleen als het duidelijk de beste keuze is
+    let meerdaagsGebruikt = false;
+    const dagSlots = [...DAGEN];
+    const nieuweP = { ...planning };
+    const gebruikteCats = [];
+    const gebruikteIds = new Set();
+    const gekozenRecepten = []; // voor uitleg
+
+    // Gooi een muntstuk: ~35% kans dat er überhaupt een 2-daags recept wordt overwogen
+    // Dit zorgt voor variatie tussen weken zodat het niet altijd 2-daags is
+    const magMeerdaagsDezweWeek = Math.random() < 0.35;
+
+    let i = 0;
+
+    while (i < dagSlots.length) {
+      const resterend = dagSlots.length - i;
+
+      // Basisfilter: niet al gebruikt, geen BBQ/Kerst, niet recent gemaakt
+      const basisKandidaten = recepten.filter(r => {
+        if (gebruikteIds.has(r.id)) return false;
+        if (r.tags.includes("BBQ") || r.tags.includes("Kerst")) return false;
+        if (recentGemaakt(r)) return false;
+        return true;
+      });
+
+      // Als te weinig kandidaten na recency filter, versoepel
+      const kandidaten = basisKandidaten.length >= 2 ? basisKandidaten : recepten.filter(r => {
+        if (gebruikteIds.has(r.id)) return false;
+        if (r.tags.includes("BBQ") || r.tags.includes("Kerst")) return false;
+        return true;
+      });
+
+      const eendaags  = kandidaten.filter(r => r.dagen < 2);
+      const meerdaags = kandidaten.filter(r => r.dagen >= 2);
+
+      // 2-daags alleen overwegen als:
+      // - het muntstuk dit week "meerdaags" zegt
+      // - nog geen 2-daags gebruikt deze week
+      // - er ≥2 slots over zijn
+      // - er daarna nog genoeg eendaagse overblijven
+      // - het 2-daagse recept significant beter scoort dan het beste eendaagse (drempel: +2 pts)
+      let pool = eendaags;
+      if (magMeerdaagsDezweWeek && !meerdaagsGebruikt && resterend >= 2 && meerdaags.length > 0) {
+        const kandidatenNa = kandidaten.filter(r => r.dagen < 2);
+        if (kandidatenNa.length >= resterend - 2) {
+          const topMeerdaags = [...meerdaags].sort((a,b) => score(b,gebruikteCats) - score(a,gebruikteCats))[0];
+          const topEendaags  = eendaags.length ? [...eendaags].sort((a,b) => score(b,gebruikteCats) - score(a,gebruikteCats))[0] : null;
+          // 2-daags wint alleen als het minstens 2 punten beter scoort — geen automatische voorkeur
+          const scoreMeerdaags = score(topMeerdaags, gebruikteCats);
+          const scoreEendaags  = topEendaags ? score(topEendaags, gebruikteCats) : -99;
+          if (scoreMeerdaags > scoreEendaags + 2) {
+            pool = meerdaags;
+          }
+        }
+      }
+
+      const gesorteerd = [...pool].sort((a,b) => score(b,gebruikteCats) - score(a,gebruikteCats));
+      const keuze = gesorteerd[0];
+
+      if (keuze) {
+        gebruikteIds.add(keuze.id);
+        gebruikteCats.push(getCat(keuze.naam));
+        const isRecentVersoepeld = basisKandidaten.length < 2 && recentGemaakt(keuze);
+
+        if (!meerdaagsGebruikt && keuze.dagen >= 2 && resterend >= 2) {
+          meerdaagsGebruikt = true;
+          nieuweP[dagSlots[i].key]     = { ...planning[dagSlots[i].key],     recept: keuze };
+          nieuweP[dagSlots[i+1].key]   = { ...planning[dagSlots[i+1].key],   recept: keuze };
+          gekozenRecepten.push({ recept: keuze, dagen: [dagSlots[i].label, dagSlots[i+1].label], recentVersoepeld: isRecentVersoepeld });
+          i += 2;
+        } else {
+          nieuweP[dagSlots[i].key] = { ...planning[dagSlots[i].key], recept: keuze };
+          gekozenRecepten.push({ recept: keuze, dagen: [dagSlots[i].label], recentVersoepeld: isRecentVersoepeld });
+          i += 1;
+        }
+      } else {
+        i += 1;
+      }
+    }
+
+    setPlanning(nieuweP);
+
+    // Sla geplande maaltijden op in geschiedenis
+    dagSlots.forEach(d => {
+      const r = nieuweP[d.key].recept;
+      if (r) {
+        const datum = komendeDatumISO(d.dagNr);
+        const weerDag = weer.find(w => ["ma","di","wo","do"][d.dagNr - 1] === w.naam);
+        slaOpInGeschiedenis(datum, r.naam, weerDag?.icon || null, weerDag?.temp || null);
+      }
+    });
+    // Sla weekendinvoer op in geschiedenis (vrijdag=-2, zaterdag=-1, zondag=0 relatief t.o.v. maandag)
+    const eersteMaandag = new Date();
+    const dagenTotMa = (1 - eersteMaandag.getDay() + 7) % 7 || 7;
+    eersteMaandag.setDate(eersteMaandag.getDate() + dagenTotMa);
+    [["vrijdag", -3], ["zaterdag", -2], ["zondag", -1]].forEach(([dag, offset]) => {
+      const naam = weekend[dag];
+      if (naam && naam.trim()) {
+        const d = new Date(eersteMaandag);
+        d.setDate(d.getDate() + offset);
+        const iso = d.toISOString().split("T")[0];
+        const weerIdx = weer.findIndex(w => w.naam === ["vr","za","zo"][["vrijdag","zaterdag","zondag"].indexOf(dag)]);
+        const weerDag = weerIdx >= 0 ? weer[weerIdx] : null;
+        slaOpInGeschiedenis(iso, naam.trim(), weerDag?.icon || null, weerDag?.temp || null);
+      }
+    });
+
+    // ── Bouw enthousiaste uitleg op ──────────────────────────────────────────
+    const uitlegRegels = [];
+
+    // Intro: seizoen + weer
+    const seizoenEmoji = { lente: "🌱", zomer: "☀️", herfst: "🍂", winter: "❄️" };
+    const seizoenLabel = huidigSeizoen.charAt(0).toUpperCase() + huidigSeizoen.slice(1);
+
+    if (weerType) {
+      const weerZin = weerType === "koud"
+        ? `Brrr, koude week in Eindhoven (${gemiddeldTemp}°)! Perfect moment voor een echte stamppot of stevige stoof aan tafel.`
+        : weerType === "fris"
+        ? `Fris buiten in Eindhoven (${gemiddeldTemp}°) — precies het moment voor wat troostfood dat de hele avond lekker ruikt.`
+        : weerType === "lekker"
+        ? `Aangenaam weer in Eindhoven (${gemiddeldTemp}°) — een mooie mix van licht en stevig past perfect bij deze week.`
+        : `Zomerse temperaturen in Eindhoven (${gemiddeldTemp}°)! Tijd voor kleurrijke, frisse maaltijden zonder al te lang te staan koken.`;
+      uitlegRegels.push(`${seizoenEmoji[huidigSeizoen] || "🍴"} ${weerZin}`);
+      if (regenDagen >= 3) uitlegRegels.push(`   🌧 ${regenDagen} regendagen verwacht — een warme soep of stoof staat er zeker in!`);
+      else if (regenDagen >= 1) uitlegRegels.push(`   🌦 Af en toe een bui — lekker excuus om iets warms op het menu te zetten.`);
+    } else {
+      uitlegRegels.push(`${seizoenEmoji[huidigSeizoen] || "🍴"} We zitten midden in de ${seizoenLabel.toLowerCase()} — de planning is daarop afgestemd!`);
+    }
+
+    // Weekend overlap
+    const weekendGerechten = [weekend.vrijdag, weekend.zaterdag, weekend.zondag].filter(Boolean);
+    if (weekendGerechten.length > 0) {
+      uitlegRegels.push(`🔄 Je had dit weekend: ${weekendGerechten.join(", ")}. Die stijl is bewust vermeden deze week.`);
+    }
+
+    // Voorraad
+    const alleIngr = [...pdfIngredienten, ...handmatigIngr];
+    if (alleIngr.length > 0) {
+      uitlegRegels.push(`📦 Voorraad meegenomen (${alleIngr.length} ingrediënten): ${alleIngr.slice(0,8).join(", ")}${alleIngr.length > 8 ? ` en ${alleIngr.length-8} anderen` : ""}.`);
+    } else if (uploadNaam) {
+      uitlegRegels.push(`📦 AH factuur (${uploadNaam}) geüpload — geen herkende ingrediënten gevonden.`);
+    }
+
+    // Per recept
+    uitlegRegels.push("");
+    uitlegRegels.push("Dit eten jullie deze week:");
+
+    const dagEmoji = { "Maandag": "1️⃣", "Dinsdag": "2️⃣", "Woensdag": "3️⃣", "Donderdag": "4️⃣" };
+    gekozenRecepten.forEach(({ recept: r, dagen, recentVersoepeld }) => {
+      const dagStr = dagen.map(d => `${dagEmoji[d] || "•"} ${d}`).join(" + ");
+      const sterren = r.rating > 0 ? " " + "★".repeat(r.rating) : "";
+      const seizoenArr = Array.isArray(r.seizoen) ? r.seizoen : r.seizoen ? [r.seizoen] : [];
+      const seizoenTip = seizoenArr.includes(huidigSeizoen) ? ` — perfect voor de ${huidigSeizoen}!` : "";
+      const versoepeld = recentVersoepeld ? " ⚠️ (recent gemaakt, weinig alternatieven)" : "";
+      const dagAantal = dagen.length > 1 ? ` (2 dagen)` : "";
+      uitlegRegels.push(`${dagStr}${dagAantal}: ${r.naam}${sterren}${seizoenTip}${versoepeld}`);
+    });
+
+    // Afsluiter
+    const uniekeCategorieen = [...new Set(gekozenRecepten.map(g => getCat(g.recept.naam)))];
+    uitlegRegels.push("");
+    uitlegRegels.push(`✨ Lekker gevarieerd: ${uniekeCategorieen.join(", ")}. Eet smakelijk! 🥦`);
+
+    setAiResultaat(uitlegRegels.join("\n"));
+  };
+
+  const deelWeekAlsPDF = () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const W = 210; const H = 297;
+    const GROEN  = [44,  74,  46];
+    const GROEN2 = [74, 122,  78];
+    const ZAND   = [245,240,232];
+    const ZANDD  = [232,222,200];
+    const WIT    = [255,255,255];
+    const TEKST  = [30, 46, 30];
+    const GRIJS  = [122,138,122];
+
+    // ── Achtergrond ──
+    doc.setFillColor(...ZAND);
+    doc.rect(0, 0, W, H, "F");
+
+    // ── Header balk ──
+    doc.setFillColor(...GROEN);
+    doc.rect(0, 0, W, 38, "F");
+
+    // Logo tekst
+    doc.setTextColor(255,255,255);
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(20);
+    doc.text("Tafel & Week", 14, 15);
+    doc.setFont("helvetica","normal");
+    doc.setFontSize(8);
+    doc.setTextColor(138,176,140);
+    doc.text("WEEKMENU", 14, 21);
+
+    // Week datums in header
+    const ma = komendeDatum(1); const do_ = komendeDatum(4);
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(11);
+    doc.setFont("helvetica","normal");
+    doc.text(`${ma} – ${do_}`, W - 14, 15, { align: "right" });
+
+    // Weer samenvatting in header
+    const weerStr = weer.slice(1,5).map(w => `${w.naam} ${w.icon} ${w.temp}°`).join("   ");
+    doc.setFontSize(8);
+    doc.setTextColor(200,230,200);
+    doc.text(weerStr, W/2, 26, { align: "center" });
+
+    // Subtitel
+    doc.setTextColor(200,230,200);
+    doc.setFontSize(8.5);
+    doc.text("Avondeten voor het hele gezin", W/2, 33, { align: "center" });
+
+    // ── Dag kaarten ──
+    const dagH = 52;
+    const dagPad = 6;
+    const startY = 46;
+    const NIET_VEGA_WDS = ["zalm","tonijn","kabeljauw","garnalen","makreel","sardines"];
+
+    DAGEN.forEach((d, idx) => {
+      const p = planning[d.key];
+      const r = p.recept;
+      const y = startY + idx * (dagH + dagPad);
+      const isTweedaags = (() => {
+        const ni = idx + 1;
+        if (ni < DAGEN.length) {
+          const np = planning[DAGEN[ni].key];
+          return np.recept && r && np.recept.id === r.id;
+        }
+        return false;
+      })();
+      const isTweede = (() => {
+        if (idx > 0) {
+          const pp = planning[DAGEN[idx-1].key];
+          return pp.recept && r && pp.recept.id === r.id;
+        }
+        return false;
+      })();
+
+      // Kaart achtergrond
+      doc.setFillColor(...WIT);
+      doc.roundedRect(12, y, W - 24, dagH, 4, 4, "F");
+
+      // Gekleurde linkerkant
+      const accentKleur = r ? (isTweedaags || isTweede ? GROEN2 : GROEN) : [200,212,200];
+      doc.setFillColor(...accentKleur);
+      doc.roundedRect(12, y, 4, dagH, 2, 2, "F");
+      doc.setFillColor(...accentKleur);
+      doc.rect(14, y, 2, dagH, "F"); // flush rechterkant accent
+
+      // Dag naam + datum
+      doc.setFont("helvetica","bold");
+      doc.setFontSize(11);
+      doc.setTextColor(...GROEN);
+      doc.text(d.label, 22, y + 10);
+
+      doc.setFont("helvetica","normal");
+      doc.setFontSize(9);
+      doc.setTextColor(...GRIJS);
+      doc.text(komendeDatum(d.dagNr), 22, y + 17);
+
+      // Kooktijd badge
+      const tijdTxt = p.thuiswerk ? "60 min" : "30 min";
+      doc.setFillColor(...ZAND);
+      doc.roundedRect(W - 48, y + 6, 22, 8, 2, 2, "F");
+      doc.setFontSize(7.5);
+      doc.setTextColor(...GRIJS);
+      doc.text(tijdTxt, W - 37, y + 11.5, { align: "center" });
+
+      // Personen
+      doc.setFontSize(7.5);
+      doc.text(`${p.personen} pers.`, W - 22, y + 11.5, { align: "right" });
+
+      if (r) {
+        // Scheidingslijn
+        doc.setDrawColor(...ZANDD);
+        doc.setLineWidth(0.3);
+        doc.line(22, y + 22, W - 14, y + 22);
+
+        // Receptnaam
+        doc.setFont("helvetica","bold");
+        doc.setFontSize(12);
+        doc.setTextColor(...TEKST);
+        const naamTxt = r.naam.length > 48 ? r.naam.substring(0,46)+"…" : r.naam;
+        doc.text(naamTxt, 22, y + 31);
+
+        // Nick
+        if (r.nick) {
+          doc.setFont("helvetica","italic");
+          doc.setFontSize(8.5);
+          doc.setTextColor(...GRIJS);
+          doc.text(r.nick, 22, y + 37);
+        }
+
+        // Rating sterren
+        if (r.rating > 0) {
+          doc.setFontSize(10);
+          doc.setTextColor(180, 140, 20);
+          doc.text("★".repeat(r.rating) + "☆".repeat(5 - r.rating), 22, y + 44);
+        }
+
+        // Seizoen tags
+        const seizArr = Array.isArray(r.seizoen) ? r.seizoen : r.seizoen ? [r.seizoen] : [];
+        let tagX = r.rating > 0 ? 22 + (r.rating > 0 ? 28 : 0) : 22;
+        seizArr.slice(0,2).forEach(s => {
+          doc.setFillColor(232,245,232);
+          doc.roundedRect(tagX, y + 39, s.length * 2.8 + 6, 7, 1.5, 1.5, "F");
+          doc.setFontSize(7);
+          doc.setTextColor(74,122,78);
+          doc.text(s, tagX + 3, y + 44);
+          tagX += s.length * 2.8 + 10;
+        });
+
+        // Vis badge
+        const isVis = NIET_VEGA_WDS.some(w => r.naam.toLowerCase().includes(w));
+        if (isVis) {
+          doc.setFillColor(230,240,255);
+          doc.roundedRect(tagX, y + 39, 16, 7, 1.5, 1.5, "F");
+          doc.setFontSize(7);
+          doc.setTextColor(30,80,160);
+          doc.text("vis", tagX + 3, y + 44);
+          tagX += 20;
+        }
+
+        // Favoriet hartje
+        if (r.favoriet) {
+          doc.setFontSize(11);
+          doc.setTextColor(...GROEN);
+          doc.text("♥", W - 22, y + 31);
+        }
+
+        // 2-daags badge
+        if (isTweedaags) {
+          doc.setFillColor(...GROEN);
+          doc.roundedRect(W - 50, y + 37, 18, 7, 1.5, 1.5, "F");
+          doc.setFontSize(7);
+          doc.setTextColor(255,255,255);
+          doc.text("2 dagen", W - 41, y + 42, { align: "center" });
+        }
+        if (isTweede) {
+          doc.setFillColor(...GROEN2);
+          doc.roundedRect(W - 50, y + 37, 18, 7, 1.5, 1.5, "F");
+          doc.setFontSize(7);
+          doc.setTextColor(255,255,255);
+          doc.text("dag 2/2", W - 41, y + 42, { align: "center" });
+        }
+
+      } else {
+        // Geen recept ingepland
+        doc.setFont("helvetica","italic");
+        doc.setFontSize(10);
+        doc.setTextColor(...GRIJS);
+        doc.text("— nog niet ingepland —", 22, y + 35);
+      }
+    });
+
+    // ── Footer ──
+    const footerY = startY + 4 * (dagH + dagPad) + 4;
+    doc.setDrawColor(...ZANDD);
+    doc.setLineWidth(0.4);
+    doc.line(14, footerY, W - 14, footerY);
+
+    doc.setFont("helvetica","normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...GRIJS);
+    const vandaag = new Date();
+    const datum = `${String(vandaag.getDate()).padStart(2,"0")}/${String(vandaag.getMonth()+1).padStart(2,"0")}/${vandaag.getFullYear()}`;
+    doc.text(`Gegenereerd op ${datum} · Tafel & Week Maaltijdplanner · Vegetarisch gezin · Eindhoven`, W/2, footerY + 6, { align: "center" });
+
+    // ── Opslaan ──
+    doc.save(`weekmenu_${ma.replace("/","-")}_tm_${do_.replace("/","-")}.pdf`);
+  };
+
+  return (
+    <div style={{ padding: 24, maxWidth: 860 }}>
+      <div style={{ fontFamily: "Georgia,serif", fontSize: 24, color: G.groen, marginBottom: 4 }}>Weekplanning</div>
+      <div style={{ fontSize: 12.5, color: G.tekstMid, marginBottom: 20 }}>Plan je avondmaaltijden voor maandag t/m donderdag</div>
+
+      {/* Weekend */}
+      <div style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, padding: "18px 20px", marginBottom: 14 }}>
+        <div style={{ fontFamily: "Georgia,serif", fontSize: 14, color: G.groen, marginBottom: 12 }}>Dit weekend gegeten</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          {["vrijdag","zaterdag","zondag"].map(d => (
+            <div key={d} style={{ background: G.zand, borderRadius: 8, padding: "10px 12px", border: `1px solid ${G.zandMid}` }}>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 500, color: G.groenMid, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>{d}</label>
+              <input value={weekend[d]} onChange={e => setWeekend({ ...weekend, [d]: e.target.value })} placeholder="Wat gegeten?" style={{ width: "100%", border: `1px solid ${G.zandMid}`, background: G.kaart, borderRadius: 7, padding: "6px 8px", fontSize: 12, color: G.tekst, outline: "none" }} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Voorraad */}
+      <div style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, padding: "18px 20px", marginBottom: 14 }}>
+        <div style={{ fontFamily: "Georgia,serif", fontSize: 14, color: G.groen, marginBottom: 14 }}>Wat heb ik nog in huis?</div>
+
+        {/* Factuur sectie met tabs */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 8 }}>AH Factuur</div>
+
+          {/* Tab knoppen */}
+          <div style={{ display: "flex", gap: 4, marginBottom: 10, background: G.zand, borderRadius: 8, padding: 3 }}>
+            {[["plak", "📋 Plak tekst"], ["upload", "📄 Upload PDF"]].map(([key, label]) => (
+              <button key={key} onClick={() => setFactuurTab(key)} style={{ flex: 1, padding: "5px 8px", borderRadius: 6, border: "none", background: factuurTab === key ? G.kaart : "transparent", color: factuurTab === key ? G.groen : G.tekstZacht, fontSize: 12, cursor: "pointer", fontWeight: factuurTab === key ? 500 : 400, boxShadow: factuurTab === key ? "0 1px 3px rgba(0,0,0,.07)" : "none", transition: "all .12s" }}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab: Plak tekst */}
+          {factuurTab === "plak" && (
+            <div>
+              <div style={{ fontSize: 11, color: G.tekstZacht, marginBottom: 7 }}>
+                Open je AH factuur, selecteer alles (Ctrl+A), kopieer (Ctrl+C) en plak hier:
+              </div>
+              <textarea
+                value={plakTekst}
+                onChange={e => { setPlakTekst(e.target.value); setPlakStatus(""); }}
+                placeholder="Plak hier de tekst van je AH factuur of bonnetje..."
+                style={{ width: "100%", border: `1px solid ${G.zandMid}`, borderRadius: 8, padding: "8px 10px", fontSize: 12, color: G.tekst, background: G.zand, outline: "none", fontFamily: "inherit", resize: "vertical", minHeight: 90, lineHeight: 1.5 }}
+              />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 7 }}>
+                <div style={{ fontSize: 11, color: G.tekstZacht }}>
+                  {plakStatus === "ok" && <span style={{ color: G.groenMid }}>✓ Ingrediënten herkend en toegevoegd</span>}
+                  {plakStatus === "laden" && <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ display: "inline-block", width: 11, height: 11, border: `2px solid ${G.groenZacht}`, borderTopColor: G.groen, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} /> Verwerken...</span>}
+                  {!plakStatus && plakTekst && <span>{plakTekst.length} tekens</span>}
+                </div>
+                <button onClick={verwerkPlakTekst} disabled={!plakTekst.trim() || plakStatus === "laden"} style={{ padding: "6px 14px", background: plakTekst.trim() ? G.groen : G.groenLicht, color: "#fff", border: "none", borderRadius: 7, cursor: plakTekst.trim() ? "pointer" : "not-allowed", fontSize: 12 }}>
+                  Herken ingrediënten
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Tab: PDF upload */}
+          {factuurTab === "upload" && (
+            <div>
+              <label style={{ display: "flex", alignItems: "center", gap: 10, border: `1.5px dashed ${uploadNaam ? G.groenLicht : G.zandDonker}`, borderRadius: 9, padding: "12px 14px", cursor: "pointer", background: uploadNaam ? G.groenPale : G.zand, transition: "all .15s" }}>
+                <div style={{ width: 28, height: 28, background: uploadNaam ? G.groenZacht : G.zandMid, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {uploadNaam
+                    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={G.groen} strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={G.zandDeep} strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  }
+                </div>
+                <div>
+                  <div style={{ fontSize: 12.5, color: uploadNaam ? G.groen : G.tekstMid, fontWeight: uploadNaam ? 500 : 400 }}>
+                    {uploadNaam ? uploadNaam : "Upload AH factuur (PDF)"}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: G.tekstZacht, marginTop: 2 }}>
+                    {uploadNaam
+                      ? pdfStatus === "laden" ? "Bezig met uitlezen..."
+                      : pdfStatus === "ok" ? `${pdfIngredienten.length} ingrediënten herkend`
+                      : pdfStatus === "leeg" ? "Geen ingrediënten gevonden"
+                      : pdfStatus === "fout" ? "Uitlezen mislukt — probeer Plak tekst"
+                      : "Verwerken..."
+                      : "Vereist een Anthropic API key (zie sidebar)"}
+                  </div>
+                </div>
+                <input type="file" accept=".pdf" style={{ display: "none" }} onChange={handlePDFChange} />
+              </label>
+              {pdfStatus === "geen-key" && (
+                <div style={{ marginTop: 8, fontSize: 11.5, color: "#7A4F00", background: "#FFF8E6", border: "1px solid #E8C96A", borderRadius: 7, padding: "7px 10px" }}>
+                  Geen API key ingesteld. Gebruik de tab "Plak tekst" — dat werkt altijd zonder API key.
+                </div>
+              )}
+              {pdfStatus === "laden" && (
+                <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: G.groenMid }}>
+                  <span style={{ display: "inline-block", width: 14, height: 14, border: `2px solid ${G.groenZacht}`, borderTopColor: G.groen, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                  Claude leest je factuur uit...
+                </div>
+              )}
+              {pdfStatus === "fout" && (
+                <div style={{ marginTop: 8, fontSize: 11.5, color: "#B03030", background: "#FEF0F0", border: "1px solid #F5C0C0", borderRadius: 7, padding: "7px 10px" }}>
+                  Kon de PDF niet uitlezen. Probeer de tab "Plak tekst".
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Herkende ingrediënten (beide tabs) */}
+          {pdfIngredienten.length > 0 && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 10, color: G.tekstZacht, marginBottom: 6 }}>Herkend uit factuur ({pdfIngredienten.length}) — klik om te verwijderen:</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                {pdfIngredienten.map(ingr => (
+                  <span key={ingr} onClick={() => verwijderPdf(ingr)} style={{ fontSize: 11, padding: "2px 8px", background: "#E8F4E8", color: G.groenMid, borderRadius: 20, cursor: "pointer", border: `1px solid ${G.groenZacht}`, display: "flex", alignItems: "center", gap: 3 }}>
+                    {ingr} <span style={{ fontSize: 10, opacity: 0.6 }}>✕</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Scheidingslijn */}
+        <div style={{ borderTop: `1px solid ${G.zandMid}`, margin: "4px 0 14px" }} />
+
+        {/* Handmatige invoer */}
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 7 }}>Zelf toevoegen</div>
+          <div style={{ fontSize: 11, color: G.tekstZacht, marginBottom: 8 }}>Ingrediënten van een andere winkel, of die je al langer hebt.</div>
+          <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+            <input
+              value={handmatigInput}
+              onChange={e => setHandmatigInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && voegHandmatigToe()}
+              placeholder="bijv. rijst, kikkererwten, kokosmelk"
+              style={{ flex: 1, border: `1px solid ${G.zandMid}`, borderRadius: 8, padding: "7px 10px", fontSize: 12.5, color: G.tekst, background: G.zand, outline: "none", fontFamily: "inherit" }}
+            />
+            <button onClick={voegHandmatigToe} style={{ padding: "7px 14px", background: G.groen, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 12.5 }}>+</button>
+          </div>
+          {handmatigIngr.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+              {handmatigIngr.map(ingr => (
+                <span key={ingr} onClick={() => verwijderHandmatig(ingr)} style={{ fontSize: 11, padding: "2px 8px", background: G.zandMid, color: G.zandDeep, borderRadius: 20, cursor: "pointer", border: `1px solid ${G.zandDonker}`, display: "flex", alignItems: "center", gap: 3 }}>
+                  {ingr} <span style={{ fontSize: 10, opacity: 0.6 }}>✕</span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Acties */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
+        <button onClick={planWeek} style={{ padding: "8px 16px", background: G.groen, color: "#fff", border: "none", borderRadius: 8, fontSize: 12.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          Plan week
+        </button>
+        <button onClick={() => setPlanning(Object.fromEntries(DAGEN.map(d => [d.key, { ...planning[d.key], recept: null }])))} style={{ padding: "8px 16px", background: G.kaart, color: G.tekstMid, border: `1px solid ${G.zandMid}`, borderRadius: 8, fontSize: 12.5, cursor: "pointer" }}>
+          Reset week
+        </button>
+        <button onClick={deelWeekAlsPDF} style={{ padding: "8px 16px", background: G.kaart, color: G.groen, border: `1px solid ${G.groenLicht}`, borderRadius: 8, fontSize: 12.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          Deel week
+        </button>
+
+      </div>
+
+      {/* Weer */}
+      {aiResultaat && (
+        <div style={{ background: G.groenPale, border: `1px solid ${G.groenZacht}`, borderRadius: 10, padding: "14px 16px", marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 9 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={G.groen} strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            <div style={{ fontSize: 10, fontWeight: 500, color: G.groen, textTransform: "uppercase", letterSpacing: ".06em" }}>Planning uitleg</div>
+          </div>
+          <div style={{ fontSize: 12.5, color: G.tekstMid, lineHeight: 1.75, whiteSpace: "pre-wrap", fontFamily: "inherit" }}>{aiResultaat}</div>
+        </div>
+      )}
+
+      {/* Weer */}
+      {weer.length > 0 && (
+        <div style={{ background: G.kaart, borderRadius: 10, border: `1px solid ${G.zandMid}`, padding: "10px 16px", marginBottom: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={G.groenMid} strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+              <span style={{ fontSize: 11, fontWeight: 500, color: G.groenMid }}>Eindhoven</span>
+            </div>
+            <span style={{ fontSize: 10, color: G.tekstZacht }}>komende 7 dagen</span>
+          </div>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+            {weer.map((w, i) => (
+              <div key={i} style={{ fontSize: 11.5, color: G.tekstMid, display: "flex", alignItems: "center", gap: 3 }}>
+                {w.naam} {w.icon} <strong style={{ color: G.tekst }}>{w.temp}°</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Dag grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        {DAGEN.map((d, idx) => {
+          const p = planning[d.key];
+          const r = p.recept;
+          const dagKeys2 = DAGEN.map(x => x.key);
+          // Detecteer 2-daags: kijk of buurdag hetzelfde recept heeft
+          const prevDag = idx > 0 ? planning[DAGEN[idx-1].key] : null;
+          const nextDag = idx < DAGEN.length-1 ? planning[DAGEN[idx+1].key] : null;
+          const isEersteDag = r && nextDag && nextDag.recept && nextDag.recept.id === r.id;
+          const isTweedeDag = r && prevDag && prevDag.recept && prevDag.recept.id === r.id;
+          const isTweedaags = isEersteDag || isTweedeDag;
+          const dagNr = isEersteDag ? 1 : isTweedeDag ? 2 : null;
+
+          return (
+            <div key={d.key} style={{
+              background: G.kaart, borderRadius: 12,
+              border: isTweedaags ? `2px solid ${G.groenLicht}` : `1px solid ${G.zandMid}`,
+              overflow: "hidden",
+              boxShadow: isTweedaags ? `0 0 0 3px ${G.groenPale}` : "none"
+            }}>
+              <div style={{ background: isTweedaags ? G.groenZacht : G.groenPale, borderBottom: `1px solid ${G.groenZacht}`, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <span style={{ fontFamily: "Georgia,serif", fontSize: 14, color: G.groen }}>{d.label}</span>
+                  <span style={{ fontSize: 11, color: G.tekstZacht }}>{komendeDatum(d.dagNr)}</span>
+                  {isTweedaags && (
+                    <span style={{ fontSize: 9.5, padding: "2px 7px", borderRadius: 20, fontWeight: 600, background: G.groen, color: "#fff", letterSpacing: ".02em" }}>
+                      dag {dagNr} van 2
+                    </span>
+                  )}
+                </div>
+                <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, fontWeight: 500, background: p.thuiswerk ? G.groenZacht : G.zandMid, color: p.thuiswerk ? G.groen : G.zandDeep }}>
+                  {p.thuiswerk ? "60 min" : "30 min"}
+                </span>
+              </div>
+              <div style={{ padding: "12px 14px" }}>
+                <div style={{ display: "flex", gap: 7, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
+                  <select value={String(p.thuiswerk)} onChange={e => setPlanning({ ...planning, [d.key]: { ...p, thuiswerk: e.target.value === "true" } })} style={{ border: `1px solid ${G.zandMid}`, background: G.zand, borderRadius: 7, padding: "4px 7px", fontSize: 11.5, color: G.tekst, outline: "none" }}>
+                    <option value="true">Thuis werk</option>
+                    <option value="false">Op kantoor</option>
+                  </select>
+                  <input type="number" value={p.personen} min={1} max={8} onChange={e => setPlanning({ ...planning, [d.key]: { ...p, personen: parseInt(e.target.value) } })} style={{ width: 50, border: `1px solid ${G.zandMid}`, background: G.zand, borderRadius: 7, padding: "4px 7px", fontSize: 11.5, color: G.tekst, outline: "none" }} />
+                  <span style={{ fontSize: 11, color: G.tekstZacht }}>pers.</span>
+                </div>
+                <div onClick={() => setSelectDag(d)} style={{ background: r ? (isTweedaags ? "#F0F9F0" : G.kaart) : G.groenPale, border: `1px ${r ? "solid" : "dashed"} ${r ? (isTweedaags ? G.groenLicht : G.zandMid) : G.groenZacht}`, borderRadius: 8, padding: "10px 12px", cursor: "pointer", minHeight: 70, display: "flex", flexDirection: "column", justifyContent: "center", gap: 5 }}>
+                  {r ? (() => {
+                    // Bereken "laatst gegeten"
+                    const gd = r.gemaaktData && r.gemaaktData.length > 0 ? r.gemaaktData[0] : null;
+                    const laastGegeten = gd ? (() => {
+                      const diff = Math.round((Date.now() - new Date(gd).getTime()) / (1000*60*60*24));
+                      return diff === 0 ? "vandaag" : diff === 1 ? "gisteren" : diff < 7 ? `${diff} dagen geleden` : diff < 14 ? "vorige week" : `${Math.round(diff/7)} weken geleden`;
+                    })() : null;
+                    const seizArr = Array.isArray(r.seizoen) ? r.seizoen : r.seizoen ? [r.seizoen] : [];
+                    return (
+                      <>
+                        {/* Naam + favoriet hartje */}
+                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 6 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 500, color: G.tekst, lineHeight: 1.3, flex: 1 }}>{r.naam}</div>
+                          {r.favoriet && (
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill={G.groen} stroke={G.groen} strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                          )}
+                        </div>
+                        {/* Rating + 2-dagen badge */}
+                        <div style={{ display: "flex", gap: 5, alignItems: "center", flexWrap: "wrap" }}>
+                          {r.rating > 0 && <Sterren rating={r.rating} />}
+                          {isTweedaags && (
+                            <span style={{ fontSize: 9.5, color: G.groenMid, display: "flex", alignItems: "center", gap: 2 }}>
+                              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                              2 dagen
+                            </span>
+                          )}
+                        </div>
+                        {/* Seizoen + laatste keer */}
+                        <div style={{ display: "flex", gap: 5, alignItems: "center", flexWrap: "wrap" }}>
+                          {seizArr.slice(0,2).map(s => (
+                            <span key={s} style={{ fontSize: 9.5, padding: "1px 5px", background: "#E8F5E9", color: G.groenMid, borderRadius: 8 }}>{s}</span>
+                          ))}
+                          {laastGegeten && (
+                            <span style={{ fontSize: 9.5, color: G.tekstZacht, display: "flex", alignItems: "center", gap: 2 }}>
+                              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                              {laastGegeten}
+                            </span>
+                          )}
+                        </div>
+                      </>
+                    );
+                  })() : <div style={{ color: G.tekstZacht, fontSize: 11.5, textAlign: "center" }}>+ Kies recept</div>}
+                </div>
+                {r && (
+                  <button onClick={() => setPlanning({ ...planning, [d.key]: { ...p, recept: null } })} style={{ marginTop: 8, width: "100%", padding: "5px", background: "#f0f0ea", color: G.tekstMid, border: `1px solid ${G.zandMid}`, borderRadius: 7, fontSize: 11, cursor: "pointer" }}>
+                    ✕ Verwijder recept
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {selectDag && (
+        <SelectModal
+          dagLabel={selectDag.label}
+          recepten={recepten}
+          onSelect={r => { setPlanning({ ...planning, [selectDag.key]: { ...planning[selectDag.key], recept: r } }); setSelectDag(null); }}
+          onClose={() => setSelectDag(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── RECEPT TOEVOEGEN MODAL ─────────────────────────────────────────────────
+function ToevoegenModal({ onClose, onSave, volgendId }) {
+  const [modus, setModus] = useState("link"); // "link" | "handmatig"
+  const [link, setLink] = useState("");
+  const [linkStatus, setLinkStatus] = useState(""); // "laden" | "ok" | "fout" | ""
+  const [form, setForm] = useState({
+    naam: "", nick: "", url: "", rating: 0, dagen: 0, notes: "", tags: []
+  });
+  const [nieuweTag, setNieuweTag] = useState("");
+  const [hoverRating, setHoverRating] = useState(0);
+
+  const verwerkLink = () => {
+    const trimmed = link.trim();
+    // Valideer AH allerhande URL
+    const match = trimmed.match(/ah\.nl\/allerhande\/recept\/(R-R\d+)\/([^/?#]+)/);
+    if (!match) {
+      setLinkStatus("fout");
+      return;
+    }
+    setLinkStatus("laden");
+    const receptId = match[1];
+    const slug = match[2];
+    const naam = slug.replace(/-/g, " ").replace(/^./, c => c.toUpperCase());
+    const imageUrl = `https://static.ah.nl/static/recepten/img_${receptId.replace("R-R","")}_300x300_FP.jpg`;
+    const seizoen = toSeizoen(naam);
+    setForm(f => ({ ...f, naam, url: trimmed, imageUrl, seizoen }));
+    setLinkStatus("ok");
+    setModus("handmatig");
+  };
+
+  const voegTagToe = (t) => {
+    const val = (t || nieuweTag).trim();
+    if (val && !form.tags.includes(val)) {
+      setForm(f => ({ ...f, tags: [...f.tags, val] }));
+      setNieuweTag("");
+    }
+  };
+
+  const opslaan = () => {
+    if (!form.naam.trim()) return;
+    const nieuw = {
+      id: volgendId,
+      naam: form.naam.trim(),
+      nick: form.nick.trim(),
+      url: form.url.trim(),
+      imageUrl: form.imageUrl || toImg(form.url.trim()),
+      notes: form.notes.trim(),
+      rating: form.rating,
+      dagen: parseInt(form.dagen) || 0,
+      tags: form.tags,
+      seizoen: form.seizoen || toSeizoen(form.naam.trim()),
+      gemaaktData: [],
+      laatstGemaakt: null,
+    };
+    onSave(nieuw);
+  };
+
+  const labelStijl = { fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 5, display: "block" };
+  const inputStijl = { width: "100%", border: `1px solid ${G.zandMid}`, borderRadius: 8, padding: "7px 10px", fontSize: 12.5, color: G.tekst, background: G.zand, outline: "none", fontFamily: "inherit" };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(30,46,30,.55)", zIndex: 200, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" }}>
+      <div style={{ background: G.kaart, borderRadius: 12, width: "100%", maxWidth: 500, boxShadow: "0 8px 40px rgba(44,74,46,.18)" }}>
+        {/* Header */}
+        <div style={{ background: G.groen, padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderRadius: "12px 12px 0 0" }}>
+          <div style={{ fontFamily: "Georgia,serif", fontSize: 17, color: "#fff" }}>Recept toevoegen</div>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,.15)", border: "none", color: "#fff", width: 26, height: 26, borderRadius: "50%", cursor: "pointer", fontSize: 14 }}>✕</button>
+        </div>
+
+        <div style={{ padding: "20px", maxHeight: "76vh", overflowY: "auto" }}>
+          {/* Modus tabs */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 20, background: G.zand, borderRadius: 8, padding: 4 }}>
+            {[["link", "Via AH link"], ["handmatig", "Handmatig"]].map(([key, label]) => (
+              <button key={key} onClick={() => setModus(key)} style={{ flex: 1, padding: "6px 10px", borderRadius: 6, border: "none", background: modus === key ? G.kaart : "transparent", color: modus === key ? G.groen : G.tekstZacht, fontSize: 12.5, cursor: "pointer", fontWeight: modus === key ? 500 : 400, boxShadow: modus === key ? "0 1px 3px rgba(0,0,0,.08)" : "none" }}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* AH Link invoer */}
+          {modus === "link" && (
+            <div>
+              <label style={labelStijl}>Albert Heijn Allerhande link</label>
+              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                <input
+                  value={link}
+                  onChange={e => { setLink(e.target.value); setLinkStatus(""); }}
+                  onKeyDown={e => e.key === "Enter" && verwerkLink()}
+                  placeholder="https://www.ah.nl/allerhande/recept/..."
+                  style={{ ...inputStijl, flex: 1 }}
+                />
+                <button onClick={verwerkLink} style={{ padding: "7px 14px", background: G.groen, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 12.5, whiteSpace: "nowrap" }}>
+                  Laden
+                </button>
+              </div>
+              {linkStatus === "fout" && (
+                <div style={{ fontSize: 11.5, color: "#B03030", background: "#FEF0F0", border: "1px solid #F5C0C0", borderRadius: 7, padding: "7px 10px" }}>
+                  Geen geldige AH Allerhande link. Gebruik een link zoals:<br />
+                  <span style={{ fontFamily: "monospace", fontSize: 10.5 }}>ah.nl/allerhande/recept/R-R.../naam</span>
+                </div>
+              )}
+              {linkStatus === "laden" && <div style={{ fontSize: 11.5, color: G.groenMid }}>Recept verwerken...</div>}
+              <div style={{ marginTop: 16, padding: "12px 14px", background: G.groenPale, borderRadius: 8, fontSize: 11.5, color: G.tekstMid, lineHeight: 1.6 }}>
+                💡 Kopieer de URL van een recept op <strong>ah.nl/allerhande</strong> en plak hem hier. Naam en foto worden automatisch ingeladen.
+              </div>
+            </div>
+          )}
+
+          {/* Handmatig / na link laden */}
+          {modus === "handmatig" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {/* Naam */}
+              <div>
+                <label style={labelStijl}>Naam recept *</label>
+                <input value={form.naam} onChange={e => setForm(f => ({ ...f, naam: e.target.value }))} placeholder="Bijv. Spaghetti met courgettesaus" style={inputStijl} />
+              </div>
+
+              {/* Bijnaam */}
+              <div>
+                <label style={labelStijl}>Bijnaam <span style={{ fontWeight: 400, textTransform: "none", fontSize: 10 }}>(optioneel)</span></label>
+                <input value={form.nick} onChange={e => setForm(f => ({ ...f, nick: e.target.value }))} placeholder="Bijv. Mamas pasta" style={inputStijl} />
+              </div>
+
+              {/* URL */}
+              <div>
+                <label style={labelStijl}>AH link <span style={{ fontWeight: 400, textTransform: "none", fontSize: 10 }}>(optioneel)</span></label>
+                <input value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="https://www.ah.nl/allerhande/recept/..." style={inputStijl} />
+              </div>
+
+              {/* Preview afbeelding als ingeladen via link */}
+              {form.imageUrl && (
+                <div>
+                  <label style={labelStijl}>Foto preview</label>
+                  <img src={form.imageUrl} onError={e => e.target.style.display="none"} style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 8 }} />
+                </div>
+              )}
+
+              {/* Rating */}
+              <div>
+                <label style={labelStijl}>Rating</label>
+                <div style={{ display: "flex", gap: 4 }}>
+                  {[1,2,3,4,5].map(n => (
+                    <span key={n} onClick={() => setForm(f => ({ ...f, rating: n === f.rating ? 0 : n }))} onMouseEnter={() => setHoverRating(n)} onMouseLeave={() => setHoverRating(0)}
+                      style={{ fontSize: 26, cursor: "pointer", color: n <= (hoverRating || form.rating) ? "#C4940A" : G.zandMid, lineHeight: 1 }}>★</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Aantal dagen */}
+              <div>
+                <label style={labelStijl}>Lekker voor hoeveel dagen?</label>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {[0,1,2,3].map(n => (
+                    <button key={n} onClick={() => setForm(f => ({ ...f, dagen: n }))} style={{ padding: "5px 12px", borderRadius: 20, border: `1px solid ${form.dagen === n ? G.groen : G.zandMid}`, background: form.dagen === n ? G.groen : G.zand, color: form.dagen === n ? "#fff" : G.tekstMid, fontSize: 12, cursor: "pointer" }}>
+                      {n === 0 ? "1 dag" : `${n+1} dag${n > 0 ? "en" : ""}`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Notities */}
+              <div>
+                <label style={labelStijl}>Notities <span style={{ fontWeight: 400, textTransform: "none", fontSize: 10 }}>(optioneel)</span></label>
+                <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Tips, aanpassingen..." style={{ ...inputStijl, minHeight: 60, resize: "vertical" }} />
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label style={labelStijl}>Tags</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 7 }}>
+                  {form.tags.map(t => (
+                    <span key={t} style={{ fontSize: 10.5, padding: "3px 9px", background: G.groenPale, color: G.groenMid, borderRadius: 20, display: "flex", alignItems: "center", gap: 3 }}>
+                      {t}<span onClick={() => setForm(f => ({ ...f, tags: f.tags.filter(x => x !== t) }))} style={{ cursor: "pointer", fontSize: 11, color: G.groenLicht }}>✕</span>
+                    </span>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 7 }}>
+                  {["BBQ","Kerst","Snel","Favoriet","Vis"].filter(t => !form.tags.includes(t)).map(t => (
+                    <span key={t} onClick={() => voegTagToe(t)} style={{ fontSize: 10.5, padding: "3px 9px", background: G.zand, color: G.zandDeep, borderRadius: 20, border: `1px dashed ${G.zandDonker}`, cursor: "pointer" }}>+ {t}</span>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 5 }}>
+                  <input value={nieuweTag} onChange={e => setNieuweTag(e.target.value)} onKeyDown={e => e.key === "Enter" && voegTagToe()} placeholder="Nieuwe tag..." style={{ ...inputStijl, flex: 1 }} />
+                  <button onClick={() => voegTagToe()} style={{ padding: "5px 11px", background: G.groen, color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontSize: 12 }}>+</button>
+                </div>
+              </div>
+
+              {/* Opslaan */}
+              <button onClick={opslaan} disabled={!form.naam.trim()} style={{ width: "100%", padding: "9px", background: form.naam.trim() ? G.groen : G.groenLicht, color: "#fff", border: "none", borderRadius: 8, cursor: form.naam.trim() ? "pointer" : "not-allowed", fontSize: 13, fontWeight: 500, marginTop: 4 }}>
+                Recept toevoegen
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── PAGINA: RECEPTEN ───────────────────────────────────────────────────────
+function ReceptenPage({ recepten, setRecepten }) {
+  const [zoek, setZoek] = useState("");
+  const [filterSeizoen, setFilterSeizoen] = useState("");
+  const [filterTag, setFilterTag] = useState("");
+  const [filterFavoriet, setFilterFavoriet] = useState(false);
+  const [detailRecept, setDetailRecept] = useState(null);
+  const [toonToevoegen, setToonToevoegen] = useState(false);
+
+  const filtered = recepten.filter(r => {
+    if (zoek && !(r.naam + " " + r.nick).toLowerCase().includes(zoek.toLowerCase())) return false;
+    if (filterSeizoen && !(Array.isArray(r.seizoen) ? r.seizoen.includes(filterSeizoen) : r.seizoen === filterSeizoen)) return false;
+    if (filterTag && !r.tags.includes(filterTag)) return false;
+    if (filterFavoriet && !r.favoriet) return false;
+    return true;
+  });
+
+  const toggleFavoriet = (id) => {
+    setRecepten(recepten.map(r => r.id === id ? { ...r, favoriet: !r.favoriet } : r));
+  };
+
+  const saveRecept = (id, updates) => {
+    setRecepten(recepten.map(r => r.id === id ? { ...r, ...updates } : r));
+    setDetailRecept(null);
+  };
+
+  const voegReceptToe = (nieuw) => {
+    setRecepten([...recepten, nieuw]);
+    setToonToevoegen(false);
+  };
+
+  // Dynamische taglijst voor filter
+  const alleTags = [...new Set(recepten.flatMap(r => r.tags))].sort();
+
+  return (
+    <div style={{ padding: 24, maxWidth: 860 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+        <div style={{ fontFamily: "Georgia,serif", fontSize: 24, color: G.groen }}>Receptenbibliotheek</div>
+        <button onClick={() => setToonToevoegen(true)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 14px", background: G.groen, color: "#fff", border: "none", borderRadius: 8, fontSize: 12.5, cursor: "pointer", flexShrink: 0 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Recept toevoegen
+        </button>
+      </div>
+      <div style={{ fontSize: 12.5, color: G.tekstMid, marginBottom: 20 }}>Jouw recepten van Albert Heijn Allerhande</div>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        <input value={zoek} onChange={e => setZoek(e.target.value)} placeholder="Zoek recept..." style={{ flex: 1, minWidth: 160, border: `1px solid ${G.zandMid}`, background: G.kaart, borderRadius: 8, padding: "7px 10px", fontSize: 12.5, color: G.tekst, outline: "none" }} />
+        {/* Favoriet-filterknop */}
+        <button onClick={() => setFilterFavoriet(f => !f)} title="Toon alleen favorieten" style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", border: `1px solid ${filterFavoriet ? G.groenLicht : G.zandMid}`, borderRadius: 8, background: filterFavoriet ? G.groenPale : G.kaart, cursor: "pointer", fontSize: 12, color: filterFavoriet ? G.groen : G.tekstMid, transition: "all .12s" }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill={filterFavoriet ? G.groen : "none"} stroke={filterFavoriet ? G.groen : G.groenLicht} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          Favorieten
+        </button>
+        <select value={filterSeizoen} onChange={e => setFilterSeizoen(e.target.value)} style={{ border: `1px solid ${G.zandMid}`, background: G.kaart, borderRadius: 8, padding: "7px 9px", fontSize: 11.5, color: G.tekst, outline: "none" }}>
+          <option value="">Alle seizoenen</option>
+          {["lente","zomer","herfst","winter"].map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select value={filterTag} onChange={e => setFilterTag(e.target.value)} style={{ border: `1px solid ${G.zandMid}`, background: G.kaart, borderRadius: 8, padding: "7px 9px", fontSize: 11.5, color: G.tekst, outline: "none" }}>
+          <option value="">Alle tags</option>
+          {alleTags.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </div>
+
+      <div style={{ fontSize: 11.5, color: G.tekstZacht, marginBottom: 10 }}>{filtered.length} van {recepten.length} recepten</div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(175px,1fr))", gap: 12 }}>
+        {filtered.map(r => <ReceptKaart key={r.id} recept={r} onClick={() => setDetailRecept(r)} onToggleFavoriet={() => toggleFavoriet(r.id)} />)}
+      </div>
+
+      {detailRecept && (
+        <ReceptDetailModal
+          recept={detailRecept}
+          alleRecepten={recepten}
+          onClose={() => setDetailRecept(null)}
+          onSave={updates => saveRecept(detailRecept.id, updates)}
+        />
+      )}
+
+      {toonToevoegen && (
+        <ToevoegenModal
+          volgendId={recepten.length}
+          onClose={() => setToonToevoegen(false)}
+          onSave={voegReceptToe}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── PAGINA: BOODSCHAPPEN ───────────────────────────────────────────────────
+function BoodschappenPage({ planning }) {
+  const gepland = DAGEN.filter(d => planning[d.key].recept);
+  const [afgevinkt, setAfgevinkt] = useState({});
+  const [aiLijst, setAiLijst] = useState("");
+  const [aiBezig, setAiBezig] = useState(false);
+
+  const genereerLijst = async () => {
+    if (!gepland.length) return;
+    setAiBezig(true);
+    setAiLijst("Lijst genereren...");
+    const lijst = gepland.map(d => `${d.label}: ${planning[d.key].recept.naam} (${planning[d.key].personen} pers.)`).join(", ");
+    try {
+      const data = await claudeFetch({ model: "claude-sonnet-4-5", max_tokens: 500, messages: [{ role: "user", content: `Maak een beknopte boodschappenlijst voor een vegetarisch gezin. Maaltijden deze week: ${lijst}. Geef de hoofd-ingrediënten per categorie (Groente, Pasta/rijst/granen, Zuivel, Overig). Max 20 items totaal. Geen inleiding, direct de lijst.` }] });
+      setAiLijst(data.content?.[0]?.text || "Geen lijst ontvangen.");
+    } catch (e) {
+      setAiLijst("Fout bij genereren.");
+    }
+    setAiBezig(false);
+  };
+
+  const exporteer = () => {
+    let t = "Boodschappenlijst\n\n";
+    gepland.forEach(d => { t += `${d.label}: ${planning[d.key].recept.naam}\n${planning[d.key].recept.url}\n\n`; });
+    if (aiLijst) t += "\nAI Boodschappenlijst:\n" + aiLijst;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([t], { type: "text/plain" }));
+    a.download = "boodschappenlijst.txt"; a.click();
+  };
+
+  return (
+    <div style={{ padding: 24, maxWidth: 700 }}>
+      <div style={{ fontFamily: "Georgia,serif", fontSize: 24, color: G.groen, marginBottom: 4 }}>Boodschappenlijst</div>
+      <div style={{ fontSize: 12.5, color: G.tekstMid, marginBottom: 20 }}>Gegenereerd op basis van je weekplanning</div>
+
+      {gepland.length === 0 ? (
+        <div style={{ background: G.kaart, border: `1px solid ${G.zandMid}`, borderRadius: 12, padding: 32, textAlign: "center", color: G.tekstZacht }}>
+          Plan eerst je week om een boodschappenlijst te genereren
+        </div>
+      ) : (
+        <div style={{ background: G.kaart, border: `1px solid ${G.zandMid}`, borderRadius: 12, padding: "18px 20px" }}>
+          <div style={{ fontFamily: "Georgia,serif", fontSize: 14, color: G.groen, marginBottom: 14 }}>Maaltijden deze week</div>
+          {(() => {
+            // Groepeer aaneengesloten dagen met hetzelfde recept
+            const groepen = [];
+            let i = 0;
+            while (i < gepland.length) {
+              const d = gepland[i];
+              const r = planning[d.key].recept;
+              const nextD = gepland[i+1];
+              const nextR = nextD ? planning[nextD.key].recept : null;
+              if (nextR && nextR.id === r.id) {
+                // 2-daagse groep
+                groepen.push({ dagen: [d, nextD], recept: r, tweedaags: true });
+                i += 2;
+              } else {
+                groepen.push({ dagen: [d], recept: r, tweedaags: false });
+                i += 1;
+              }
+            }
+            return groepen.map((groep, gi) => {
+              const { dagen, recept: r, tweedaags } = groep;
+              const dagLabels = dagen.map(d => d.label).join(" + ");
+              const checkKey = dagen[0].key;
+              const totalPersStr = tweedaags
+                ? `${planning[dagen[0].key].personen} pers. × 2 avonden`
+                : `${planning[dagen[0].key].personen} pers.`;
+              return (
+                <div key={gi} style={{ marginBottom: 14 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, paddingBottom: 6, borderBottom: `1px solid ${tweedaags ? G.groenZacht : G.zandMid}`, marginBottom: 7 }}>
+                    {tweedaags && (
+                      <span style={{ flexShrink: 0, fontSize: 9.5, padding: "2px 7px", borderRadius: 20, fontWeight: 600, background: G.groen, color: "#fff" }}>
+                        2 dagen
+                      </span>
+                    )}
+                    <span style={{ fontFamily: "Georgia,serif", fontSize: 13.5, color: G.groen }}>
+                      {dagLabels} — {r.naam}
+                    </span>
+                    <span style={{ marginLeft: "auto", fontSize: 11, color: G.tekstZacht, whiteSpace: "nowrap" }}>
+                      {totalPersStr}
+                    </span>
+                  </div>
+                  {tweedaags && (
+                    <div style={{ fontSize: 11, color: G.groenMid, background: G.groenPale, borderRadius: 6, padding: "4px 8px", marginBottom: 6, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                      Reken dubbele hoeveelheid ingrediënten
+                    </div>
+                  )}
+                  <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "4px 0", fontSize: 12.5, color: afgevinkt[checkKey] ? G.tekstZacht : G.tekst, textDecoration: afgevinkt[checkKey] ? "line-through" : "none" }}>
+                    <input type="checkbox" checked={!!afgevinkt[checkKey]} onChange={e => setAfgevinkt({ ...afgevinkt, [checkKey]: e.target.checked })} style={{ accentColor: G.groen }} />
+                    <a href={r.url} target="_blank" rel="noreferrer" style={{ color: G.groenMid, fontSize: 11.5 }}>Bekijk ingrediënten op AH ↗</a>
+                  </div>
+                  {/* Extra ingrediënten uit notities */}
+                  {r.notes && r.notes.trim() && (() => {
+                    const isIngredient = regel => {
+                      if (regel.length < 2) return false;
+                      // Geen URLs
+                      if (/https?:\/\//.test(regel)) return false;
+                      // Geen zeer lange regels (waarschijnlijk instructies of beschrijving)
+                      if (regel.length > 80) return false;
+                      // Geen instructies (Nederlandse gebiedende wijs)
+                      if (/^(snijd|snij|bak|kook|meng|roer|voeg|verhit|giet|doe|zet|laat|schil|was|hak|rasp|breng|stoof|fruit|braad|klop|zeef|dek|verwijder|pel|drain|spoel|serveer|bestrooi|marineer|maak|gebruik|verwarm|los|dip|vul|leg|verdeel|vet|besmeer)\b/i.test(regel)) return false;
+                      // Geen zinnen die eindigen op een punt (geen afkorting)
+                      if (/[a-z]{4,}\.$/.test(regel)) return false;
+                      // Geen metadata-regels
+                      if (/^(tip|noot|bron|bereidingstijd|oventijd|p\.p\.|per persoon|voor \d)/i.test(regel)) return false;
+                      // Geen ontkenningen of adviezen ("niet te zoet", "geen zout")
+                      if (/\bniet\b/i.test(regel)) return false;
+                      if (/^geen\b/i.test(regel)) return false;
+                      // Eindigt op een kookinfinitief → instructie ("aardappels lang bakken")
+                      if (/\b(bakken|koken|snijden|mengen|roeren|braden|stoven|wokken|frituren|stomen|pocheren|marineren|inkoken|aanbraden|uitlekken|afgieten|verwarmen|afkoelen|opwarmen|sauteren|blancheren|gratineren|doorroeren|afbakken)$/i.test(regel)) return false;
+                      // Bevat tijd/wijze-bijwoord + voedingsterm zonder hoeveelheid → tip ("lang op laag vuur")
+                      if (/\b(lang|kort|even|langzaam|snel|goed|rustig)\b.*(vuur|warmte|hitte|pan|oven)/i.test(regel)) return false;
+                      // Positief: bevat maateenheid of begint met getal → zeker een ingrediënt
+                      const heeftMaat = /\b\d+[\.,]?\d*\s*(g|kg|ml|l|el|tl|dl|cl|stuk(s)?|snufje|scheutje|blikje|zakje|bosje|teen(tje)?|eetlepel|theelepel|kopje|handvol|plak(je)?|takje|blaadje|cm|liter)\b/i.test(regel);
+                      const begintMetGetal = /^\d/.test(regel);
+                      if (heeftMaat || begintMetGetal) return true;
+                      // Korte frase: alleen accepteren als het eruitziet als een voedingsnaam
+                      // (max 4 woorden, geen werkwoord-achtig woord erin)
+                      const woorden = regel.split(/\s+/);
+                      if (woorden.length > 4) return false;
+                      const bevatWerkwoord = woorden.some(w => /^(is|zijn|heeft|hebben|moet|kunnen|willen|gaan|komen|staan|liggen|zitten|worden|doen|maken|nemen|zien|weten|zeggen|geven|denken|vinden|houden|lijken|blijven|laten|zetten|lijkt|past|smaakt|werkt)$/i.test(w));
+                      return !bevatWerkwoord;
+                    };
+                    const extraItems = r.notes
+                      .split(/\n/)
+                      .map(regel => regel.replace(/^[-•*]\s*/, "").trim())
+                      .filter(isIngredient);
+                    if (extraItems.length === 0) return null;
+                    return (
+                      <div style={{ marginTop: 6, paddingLeft: 2 }}>
+                        <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".05em", color: G.groenMid, marginBottom: 5 }}>
+                          Extra ingrediënten uit notities
+                        </div>
+                        {extraItems.map((item, ii) => {
+                          const itemKey = `${checkKey}_extra_${ii}`;
+                          return (
+                            <div key={itemKey} style={{ display: "flex", alignItems: "center", gap: 7, padding: "3px 0", fontSize: 12, color: afgevinkt[itemKey] ? G.tekstZacht : G.tekst, textDecoration: afgevinkt[itemKey] ? "line-through" : "none" }}>
+                              <input type="checkbox" checked={!!afgevinkt[itemKey]} onChange={e => setAfgevinkt({ ...afgevinkt, [itemKey]: e.target.checked })} style={{ accentColor: G.groen }} />
+                              <span>{item}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              );
+            });
+          })()}
+          <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+            <button onClick={genereerLijst} disabled={aiBezig} style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 16px", background: aiBezig ? G.groenLicht : G.groen, color: "#fff", border: "none", borderRadius: 8, fontSize: 12.5, cursor: aiBezig ? "not-allowed" : "pointer" }}>
+              {aiBezig ? "Genereren..." : "AI boodschappenlijst"}
+            </button>
+            <button onClick={exporteer} style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 16px", background: G.kaart, color: G.tekstMid, border: `1px solid ${G.zandMid}`, borderRadius: 8, fontSize: 12.5, cursor: "pointer" }}>
+              Exporteer .txt
+            </button>
+          </div>
+          {aiLijst && (
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${G.zandMid}` }}>
+              <div style={{ fontSize: 10, fontWeight: 500, color: G.groen, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>AI Boodschappenlijst</div>
+              <div style={{ fontSize: 12.5, color: G.tekstMid, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{aiLijst}</div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── PAGINA: GEZIN ──────────────────────────────────────────────────────────
+// ─── PAGINA: KALENDER ───────────────────────────────────────────────────────
+function KalenderPage() {
+  const [geschiedenis, setGeschiedenis] = useState(() => loadGeschiedenis());
+  const [weergaveJaar, setWeergaveJaar] = useState(() => new Date().getFullYear());
+  const [weergaveMaand, setWeergaveMaand] = useState(() => new Date().getMonth());
+
+  const MAANDEN = ["Januari","Februari","Maart","April","Mei","Juni","Juli","Augustus","September","Oktober","November","December"];
+  const DAGLETTERS = ["Ma","Di","Wo","Do","Vr","Za","Zo"];
+
+  // Navigatie
+  const vorigeM = () => {
+    if (weergaveMaand === 0) { setWeergaveMaand(11); setWeergaveJaar(y => y-1); }
+    else setWeergaveMaand(m => m-1);
+  };
+  const volgendeM = () => {
+    if (weergaveMaand === 11) { setWeergaveMaand(0); setWeergaveJaar(y => y+1); }
+    else setWeergaveMaand(m => m+1);
+  };
+
+  // Bouw kalenderraster voor deze maand
+  const eersteD = new Date(weergaveJaar, weergaveMaand, 1);
+  const aantalDagen = new Date(weergaveJaar, weergaveMaand + 1, 0).getDate();
+  // Weekdag van de 1e (0=zo → omzetten naar ma=0)
+  const startOffset = (eersteD.getDay() + 6) % 7;
+  const vandaag = new Date().toISOString().split("T")[0];
+
+  const dagen = [];
+  for (let i = 0; i < startOffset; i++) dagen.push(null); // lege cellen
+  for (let d = 1; d <= aantalDagen; d++) {
+    const iso = `${weergaveJaar}-${String(weergaveMaand+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    dagen.push({ dag: d, iso, entry: geschiedenis[iso] || null });
+  }
+
+  // Herlaad bij focus (in geval van wijzigingen elders)
+  useEffect(() => {
+    const herlaad = () => setGeschiedenis(loadGeschiedenis());
+    window.addEventListener("focus", herlaad);
+    return () => window.removeEventListener("focus", herlaad);
+  }, []);
+
+  return (
+    <div style={{ padding: 24, maxWidth: 820 }}>
+      <div style={{ fontFamily: "Georgia,serif", fontSize: 24, color: G.groen, marginBottom: 4 }}>Maaltijdgeschiedenis</div>
+      <div style={{ fontSize: 12.5, color: G.tekstMid, marginBottom: 20 }}>Overzicht van alle geplande en ingevoerde maaltijden</div>
+
+      {/* Navigatie */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+        <button onClick={vorigeM} style={{ width: 32, height: 32, borderRadius: "50%", border: `1px solid ${G.zandMid}`, background: G.kaart, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: G.tekstMid }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div style={{ fontFamily: "Georgia,serif", fontSize: 18, color: G.groen, minWidth: 180, textAlign: "center" }}>
+          {MAANDEN[weergaveMaand]} {weergaveJaar}
+        </div>
+        <button onClick={volgendeM} style={{ width: 32, height: 32, borderRadius: "50%", border: `1px solid ${G.zandMid}`, background: G.kaart, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: G.tekstMid }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <button onClick={() => { setWeergaveMaand(new Date().getMonth()); setWeergaveJaar(new Date().getFullYear()); }} style={{ marginLeft: "auto", padding: "5px 12px", border: `1px solid ${G.zandMid}`, borderRadius: 7, background: G.kaart, fontSize: 12, color: G.tekstMid, cursor: "pointer" }}>
+          Vandaag
+        </button>
+      </div>
+
+      {/* Kalender */}
+      <div style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, overflow: "hidden" }}>
+        {/* Dagletters header */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", background: G.groenPale, borderBottom: `1px solid ${G.groenZacht}` }}>
+          {DAGLETTERS.map(l => (
+            <div key={l} style={{ padding: "8px 4px", textAlign: "center", fontSize: 11, fontWeight: 500, color: G.groenMid, letterSpacing: ".04em" }}>{l}</div>
+          ))}
+        </div>
+
+        {/* Dagen grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
+          {dagen.map((dag, i) => {
+            if (!dag) return <div key={`leeg-${i}`} style={{ minHeight: 80, borderRight: `1px solid ${G.zandMid}`, borderBottom: `1px solid ${G.zandMid}`, background: "#FAFAF7" }} />;
+
+            const isVandaag = dag.iso === vandaag;
+            const heeftMaaltijd = !!dag.entry;
+            const isWeekend = (i % 7) >= 5; // za/zo
+
+            return (
+              <div key={dag.iso} style={{
+                minHeight: 80,
+                borderRight: `1px solid ${G.zandMid}`,
+                borderBottom: `1px solid ${G.zandMid}`,
+                padding: "6px 7px",
+                background: isVandaag ? "#F0F9F0" : isWeekend ? "#FDFAF5" : G.kaart,
+                position: "relative"
+              }}>
+                {/* Dagnummer */}
+                <div style={{
+                  fontSize: 12,
+                  fontWeight: isVandaag ? 600 : 400,
+                  color: isVandaag ? G.groen : G.tekstZacht,
+                  marginBottom: 4,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between"
+                }}>
+                  <span style={isVandaag ? { background: G.groen, color: "#fff", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11 } : {}}>
+                    {dag.dag}
+                  </span>
+                  {dag.entry?.weer && (
+                    <span style={{ fontSize: 13 }} title={dag.entry.temp ? `${dag.entry.temp}°` : ""}>{dag.entry.weer}</span>
+                  )}
+                </div>
+
+                {/* Maaltijd */}
+                {heeftMaaltijd && (
+                  <div style={{
+                    fontSize: 10.5,
+                    lineHeight: 1.35,
+                    color: G.tekst,
+                    background: G.groenPale,
+                    borderRadius: 4,
+                    padding: "3px 5px",
+                    borderLeft: `2px solid ${G.groenLicht}`
+                  }}>
+                    {dag.entry.maaltijd.length > 28
+                      ? dag.entry.maaltijd.substring(0, 26) + "…"
+                      : dag.entry.maaltijd}
+                    {dag.entry.temp && (
+                      <div style={{ fontSize: 9.5, color: G.tekstZacht, marginTop: 1 }}>{dag.entry.temp}°</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Legenda */}
+      <div style={{ display: "flex", gap: 16, marginTop: 14, flexWrap: "wrap", fontSize: 11, color: G.tekstZacht, alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <div style={{ width: 12, height: 12, background: G.groenPale, borderRadius: 2, borderLeft: `2px solid ${G.groenLicht}` }} />
+          Maaltijd gepland
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <div style={{ width: 20, height: 20, background: G.groen, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontSize: 9, color: "#fff" }}>•</span>
+          </div>
+          Vandaag
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ fontSize: 14 }}>🌤</span>
+          Weer van die dag
+        </div>
+        {Object.keys(geschiedenis).length > 0 && (
+          <div style={{ marginLeft: "auto", fontSize: 11, color: G.tekstZacht }}>
+            {Object.keys(geschiedenis).length} dagen met maaltijden opgeslagen
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+// ─── PAGINA: STATISTIEKEN ────────────────────────────────────────────────────
+function StatistiekenPage({ recepten, planning }) {
+  const geschiedenis = loadGeschiedenis();
+  const entries = Object.entries(geschiedenis); // [[datum, {maaltijd, weer, temp}], ...]
+
+  // ── Voedingswaarden schatting per gerechtstype ──────────────────────────
+  // Gebaseerd op typische waarden voor een gezinsportie (4 pers.)
+  const VOEDING = {
+    pasta:    { kcal: 620, proteïne: 22, koolhydraten: 85, vetten: 18, vezels: 6 },
+    stamppot: { kcal: 520, proteïne: 15, koolhydraten: 70, vetten: 16, vezels: 10 },
+    stoof:    { kcal: 480, proteïne: 18, koolhydraten: 45, vetten: 20, vezels: 9 },
+    traybake: { kcal: 440, proteïne: 16, koolhydraten: 50, vetten: 18, vezels: 8 },
+    wrap:     { kcal: 560, proteïne: 20, koolhydraten: 65, vetten: 20, vezels: 7 },
+    rijst:    { kcal: 580, proteïne: 18, koolhydraten: 90, vetten: 14, vezels: 5 },
+    soep:     { kcal: 320, proteïne: 14, koolhydraten: 38, vetten: 10, vezels: 8 },
+    noedels:  { kcal: 540, proteïne: 20, koolhydraten: 78, vetten: 16, vezels: 5 },
+    quiche:   { kcal: 580, proteïne: 18, koolhydraten: 42, vetten: 32, vezels: 4 },
+    salade:   { kcal: 320, proteïne: 12, koolhydraten: 28, vetten: 16, vezels: 7 },
+    curry:    { kcal: 520, proteïne: 18, koolhydraten: 60, vetten: 20, vezels: 7 },
+    overig:   { kcal: 500, proteïne: 17, koolhydraten: 58, vetten: 18, vezels: 7 },
+  };
+
+  const CATS_MAP = {
+    pasta:    ["spaghetti","pasta","orzo","tagliatelle","linguine","macaroni","orecchiette","tortellini","lasagne"],
+    stamppot: ["stamppot"],
+    stoof:    ["stoof","stoofpot","bonenstoof"],
+    traybake: ["traybake","plaattaart","ovenschotel"],
+    wrap:     ["wrap","enchilada"],
+    rijst:    ["nasi","rijst","risotto"],
+    soep:     ["soep"],
+    noedels:  ["noedels","noodles","gebakken noedels"],
+    quiche:   ["quiche","taart"],
+    salade:   ["salade"],
+    curry:    ["curry","tikka","butter"],
+  };
+
+  function getCatVanNaam(naam) {
+    const n = naam.toLowerCase();
+    for (const [cat, ws] of Object.entries(CATS_MAP)) {
+      if (ws.some(w => n.includes(w))) return cat;
+    }
+    return "overig";
+  }
+
+  function isVis(naam) {
+    return ["zalm","tonijn","vis","kabeljauw","garnalen","makreel","sardines"].some(w => naam.toLowerCase().includes(w));
+  }
+
+  // ── Bereken statistieken ──────────────────────────────────────────────
+  // Maaltijdfrequentie uit geschiedenis
+  const telMap = {};
+  entries.forEach(([, e]) => {
+    const n = e.maaltijd;
+    telMap[n] = (telMap[n] || 0) + 1;
+  });
+  const meestGegeten = Object.entries(telMap)
+    .sort((a,b) => b[1]-a[1])
+    .slice(0,5);
+
+  // Koppel entries aan recepten voor rijkere data
+  const receptMap = Object.fromEntries(recepten.map(r => [r.naam.toLowerCase(), r]));
+  function vindRecept(naam) {
+    return receptMap[naam.toLowerCase()] || recepten.find(r => r.naam.toLowerCase().includes(naam.toLowerCase().substring(0,15)));
+  }
+
+  // Weken analyse: groepeer per week (ISO weeknummer)
+  function weekKey(isoDate) {
+    const d = new Date(isoDate);
+    const dag = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const donderdag = new Date(dag);
+    donderdag.setDate(dag.getDate() + 3 - (dag.getDay() + 6) % 7);
+    const eersteJan = new Date(donderdag.getFullYear(), 0, 4);
+    return `${donderdag.getFullYear()}-W${String(1 + Math.round(((donderdag - eersteJan) / 86400000 - 3 + (eersteJan.getDay() + 6) % 7) / 7)).padStart(2,"0")}`;
+  }
+
+  const weken = {};
+  entries.forEach(([datum, e]) => {
+    const wk = weekKey(datum);
+    if (!weken[wk]) weken[wk] = [];
+    weken[wk].push({ datum, ...e });
+  });
+
+  // Weken met alleen 5-sterren
+  const vijfSterrenWeken = Object.values(weken).filter(week => {
+    const metRating = week.filter(e => {
+      const r = vindRecept(e.maaltijd);
+      return r && r.rating > 0;
+    });
+    return metRating.length > 0 && metRating.every(e => {
+      const r = vindRecept(e.maaltijd);
+      return r && r.rating === 5;
+    });
+  }).length;
+
+  // Vis vs vega telling
+  let visTeller = 0, vegaTeller = 0;
+  entries.forEach(([, e]) => {
+    if (isVis(e.maaltijd)) visTeller++;
+    else vegaTeller++;
+  });
+
+  // Gemiddelde rating van alle geplande maaltijden
+  const ratingsLijst = entries
+    .map(([, e]) => { const r = vindRecept(e.maaltijd); return r ? r.rating : 0; })
+    .filter(r => r > 0);
+  const gemRating = ratingsLijst.length > 0
+    ? (ratingsLijst.reduce((s,r) => s+r, 0) / ratingsLijst.length).toFixed(1)
+    : null;
+
+  // Voedingswaarden — periode instelbaar via state
+  // Datumformattering helper
+  function fmtDatum(d) {
+    return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
+  }
+
+  // Periode opties — "komend" = toekomstige planning via props
+  // dagen: positief = terug in tijd, "komend" = speciale modus
+  const PERIODE_OPTIES = [
+    { label: "Komende 4 dagen", dagen: "komend" },
+    { label: "7 dagen",  dagen: 7 },
+    { label: "14 dagen", dagen: 14 },
+    { label: "30 dagen", dagen: 30 },
+    { label: "90 dagen", dagen: 90 },
+    { label: "Alles",    dagen: 99999 },
+  ];
+  const [voedingPeriode, setVoedingPeriode] = useState(7);
+
+  // Bereken datumbereik voor weergave
+  const nu = new Date();
+  let periodeLabel = "";
+  let recenteEntries = [];
+
+  if (voedingPeriode === "komend") {
+    // Gebruik de geplande recepten uit de planning prop
+    const geplande = planning ? Object.entries(planning)
+      .filter(([, p]) => p.recept)
+      .map(([key, p]) => {
+        const dagNrMap = { maandag: 1, dinsdag: 2, woensdag: 3, donderdag: 4 };
+        const dagNr = dagNrMap[key];
+        const d = new Date(nu);
+        const dagenTotMa = (1 - d.getDay() + 7) % 7 || 7;
+        d.setDate(d.getDate() + dagenTotMa + (dagNr - 1));
+        return { datum: d.toISOString().split("T")[0], maaltijd: p.recept.naam, datObj: d };
+      }) : [];
+    recenteEntries = geplande.map(g => [g.datum, { maaltijd: g.maaltijd }]);
+    if (geplande.length > 0) {
+      const datums = geplande.map(g => g.datObj);
+      const vroegste = new Date(Math.min(...datums));
+      const laatste  = new Date(Math.max(...datums));
+      periodeLabel = `${fmtDatum(vroegste)} – ${fmtDatum(laatste)}`;
+    } else {
+      periodeLabel = "geen planning";
+    }
+  } else {
+    const start = new Date(nu);
+    start.setDate(start.getDate() - (voedingPeriode >= 99999 ? 3650 : voedingPeriode));
+    recenteEntries = entries.filter(([datum]) => new Date(datum) >= start);
+    if (recenteEntries.length > 0) {
+      const datums = recenteEntries.map(([d]) => new Date(d));
+      const vroegste = new Date(Math.min(...datums));
+      const laatste  = new Date(Math.max(...datums));
+      periodeLabel = voedingPeriode >= 99999
+        ? `${fmtDatum(vroegste)} – ${fmtDatum(laatste)}`
+        : `${fmtDatum(start)} – ${fmtDatum(nu)}`;
+    } else {
+      periodeLabel = voedingPeriode >= 99999 ? "geen data" : `afgelopen ${voedingPeriode} dagen`;
+    }
+  }
+
+  const voedingTotaal = { kcal: 0, proteïne: 0, koolhydraten: 0, vetten: 0, vezels: 0 };
+  recenteEntries.forEach(([, e]) => {
+    const cat = getCatVanNaam(e.maaltijd);
+    const v = VOEDING[cat] || VOEDING.overig;
+    const personen = 4;
+    voedingTotaal.kcal += v.kcal / personen;
+    voedingTotaal.proteïne += v.proteïne / personen;
+    voedingTotaal.koolhydraten += v.koolhydraten / personen;
+    voedingTotaal.vetten += v.vetten / personen;
+    voedingTotaal.vezels += v.vezels / personen;
+  });
+  const aantalDagenRecent = recenteEntries.length || 1;
+  const voedingGemPerDag = {
+    kcal: Math.round(voedingTotaal.kcal / aantalDagenRecent),
+    proteïne: Math.round(voedingTotaal.proteïne / aantalDagenRecent),
+    koolhydraten: Math.round(voedingTotaal.koolhydraten / aantalDagenRecent),
+    vetten: Math.round(voedingTotaal.vetten / aantalDagenRecent),
+    vezels: Math.round(voedingTotaal.vezels / aantalDagenRecent),
+  };
+
+  // Categorie verdeling
+  const catTelling = {};
+  entries.forEach(([, e]) => {
+    const c = getCatVanNaam(e.maaltijd);
+    catTelling[c] = (catTelling[c] || 0) + 1;
+  });
+  const catSorted = Object.entries(catTelling).sort((a,b) => b[1]-a[1]);
+  const catTotaal = catSorted.reduce((s,[,n]) => s+n, 0);
+
+  // Stijl helpers
+  const kaart = (kinderen, extra = {}) => (
+    <div style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, padding: "18px 20px", ...extra }}>
+      {kinderen}
+    </div>
+  );
+  const sKop = (tekst) => (
+    <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".07em", color: G.groenMid, marginBottom: 10 }}>{tekst}</div>
+  );
+  const groot = (waarde, label, sub = null) => (
+    <div style={{ textAlign: "center" }}>
+      <div style={{ fontFamily: "Georgia,serif", fontSize: 32, color: G.groen, lineHeight: 1 }}>{waarde}</div>
+      <div style={{ fontSize: 11.5, color: G.tekstMid, marginTop: 4 }}>{label}</div>
+      {sub && <div style={{ fontSize: 10, color: G.tekstZacht, marginTop: 2 }}>{sub}</div>}
+    </div>
+  );
+
+  if (entries.length === 0) {
+    return (
+      <div style={{ padding: 24, maxWidth: 820 }}>
+        <div style={{ fontFamily: "Georgia,serif", fontSize: 24, color: G.groen, marginBottom: 4 }}>Statistieken</div>
+        <div style={{ fontSize: 12.5, color: G.tekstMid, marginBottom: 24 }}>Inzicht in jouw maaltijdpatroon</div>
+        <div style={{ background: G.kaart, border: `1px solid ${G.zandMid}`, borderRadius: 12, padding: 40, textAlign: "center", color: G.tekstZacht }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>📊</div>
+          <div style={{ fontSize: 14, fontWeight: 500, color: G.tekstMid, marginBottom: 6 }}>Nog geen data</div>
+          <div style={{ fontSize: 12.5 }}>Plan je eerste week om statistieken te zien. Je geschiedenis wordt automatisch opgebouwd.</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: 24, maxWidth: 820 }}>
+      <div style={{ fontFamily: "Georgia,serif", fontSize: 24, color: G.groen, marginBottom: 4 }}>Statistieken</div>
+      <div style={{ fontSize: 12.5, color: G.tekstMid, marginBottom: 24 }}>
+        Gebaseerd op {entries.length} geplande maaltijden
+      </div>
+
+      {/* ── Rij 1: grote overzichtscijfers ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 16 }}>
+        {[
+          [entries.length, "maaltijden gepland", null],
+          [gemRating ? `${gemRating}★` : "—", "gem. rating", "van geplande maaltijden"],
+          [vijfSterrenWeken, "5-sterren weken", "alle maaltijden ★★★★★"],
+          [Object.keys(weken).length, "weken bijgehouden", null],
+        ].map(([w, l, s], i) => (
+          <div key={i} style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, padding: "16px 12px" }}>
+            {groot(w, l, s)}
+          </div>
+        ))}
+      </div>
+
+      {/* ── Rij 2: meest gegeten + vis/vega ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+
+        {/* Meest gegeten */}
+        {kaart(<>
+          {sKop("Top 5 meest gegeten")}
+          {meestGegeten.length === 0
+            ? <div style={{ fontSize: 12, color: G.tekstZacht }}>Nog geen data</div>
+            : meestGegeten.map(([naam, tel], i) => {
+              const r = vindRecept(naam);
+              const balk = Math.round((tel / meestGegeten[0][1]) * 100);
+              return (
+                <div key={naam} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 11, color: G.tekstZacht, width: 14 }}>{i+1}.</span>
+                      <span style={{ fontSize: 12, color: G.tekst, fontWeight: i === 0 ? 500 : 400 }}>
+                        {naam.length > 28 ? naam.substring(0,26)+"…" : naam}
+                      </span>
+                      {r?.favoriet && <svg width="10" height="10" viewBox="0 0 24 24" fill={G.groen} stroke={G.groen} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>}
+                    </div>
+                    <span style={{ fontSize: 11, color: G.tekstZacht, flexShrink: 0 }}>{tel}×</span>
+                  </div>
+                  <div style={{ height: 4, background: G.zandMid, borderRadius: 2, overflow: "hidden" }}>
+                    <div style={{ width: `${balk}%`, height: "100%", background: i === 0 ? G.groen : G.groenLicht, borderRadius: 2, transition: "width .3s" }} />
+                  </div>
+                </div>
+              );
+            })
+          }
+        </>, { flex: 1 })}
+
+        {/* Vis vs Vega + categorie */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {kaart(<>
+            {sKop("Vis vs. volledig vega")}
+            <div style={{ display: "flex", gap: 0, borderRadius: 8, overflow: "hidden", height: 24, marginBottom: 8 }}>
+              {vegaTeller > 0 && <div style={{ flex: vegaTeller, background: G.groen, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontSize: 10, color: "#fff", fontWeight: 500 }}>{vegaTeller}</span>
+              </div>}
+              {visTeller > 0 && <div style={{ flex: visTeller, background: G.groenLicht, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontSize: 10, color: G.groen, fontWeight: 500 }}>{visTeller}</span>
+              </div>}
+            </div>
+            <div style={{ display: "flex", gap: 12, fontSize: 11.5 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <div style={{ width: 10, height: 10, borderRadius: 2, background: G.groen }} />
+                <span style={{ color: G.tekstMid }}>Vega: {vegaTeller} ({Math.round(vegaTeller/(vegaTeller+visTeller||1)*100)}%)</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <div style={{ width: 10, height: 10, borderRadius: 2, background: G.groenLicht }} />
+                <span style={{ color: G.tekstMid }}>Vis: {visTeller} ({Math.round(visTeller/(vegaTeller+visTeller||1)*100)}%)</span>
+              </div>
+            </div>
+          </>)}
+
+          {kaart(<>
+            {sKop("Soorten gerechten")}
+            {catSorted.slice(0,4).map(([cat, n]) => (
+              <div key={cat} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                <span style={{ fontSize: 12, color: G.tekst, textTransform: "capitalize" }}>{cat}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <div style={{ width: 60, height: 4, background: G.zandMid, borderRadius: 2, overflow: "hidden" }}>
+                    <div style={{ width: `${Math.round(n/catTotaal*100)}%`, height: "100%", background: G.groenMid, borderRadius: 2 }} />
+                  </div>
+                  <span style={{ fontSize: 11, color: G.tekstZacht, width: 18, textAlign: "right" }}>{n}</span>
+                </div>
+              </div>
+            ))}
+          </>)}
+        </div>
+      </div>
+
+      {/* ── Rij 3: Voedingswaarden ── */}
+      {kaart(<>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".07em", color: G.groenMid }}>
+            Geschatte voedingswaarden per persoon per dag
+          </div>
+          {/* Periode selector */}
+          <div style={{ display: "flex", gap: 3, background: G.zand, borderRadius: 7, padding: 3, flexWrap: "wrap" }}>
+            {PERIODE_OPTIES.map(opt => {
+              const actief = voedingPeriode === opt.dagen;
+              const isKomend = opt.dagen === "komend";
+              return (
+                <button
+                  key={String(opt.dagen)}
+                  onClick={() => setVoedingPeriode(opt.dagen)}
+                  style={{
+                    padding: "3px 9px", borderRadius: 5, border: "none",
+                    background: actief ? G.kaart : "transparent",
+                    color: actief ? (isKomend ? G.groenMid : G.groen) : G.tekstZacht,
+                    fontSize: 11, cursor: "pointer",
+                    fontWeight: actief ? 500 : 400,
+                    boxShadow: actief ? "0 1px 3px rgba(0,0,0,.08)" : "none",
+                    transition: "all .12s",
+                    display: "flex", alignItems: "center", gap: 3
+                  }}
+                >
+                  {isKomend && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>}
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+          <span style={{ fontSize: 11, color: G.tekstZacht }}>
+            {voedingPeriode === "komend" ? "Geplande maaltijden" : "Gemiddelde"}
+            {" — "}{recenteEntries.length} maaltij{recenteEntries.length === 1 ? "d" : "den"}
+          </span>
+          {periodeLabel && (
+            <span style={{ fontSize: 11, color: G.groenMid, background: G.groenPale, padding: "2px 8px", borderRadius: 8, display: "flex", alignItems: "center", gap: 4 }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+              {periodeLabel}
+            </span>
+          )}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 10 }}>
+          {[
+            { label: "Calorieën", waarde: voedingGemPerDag.kcal, eenheid: "kcal", aanbevolen: 2000, kleur: "#E8A020" },
+            { label: "Proteïne", waarde: voedingGemPerDag.proteïne, eenheid: "g", aanbevolen: 55, kleur: G.groen },
+            { label: "Koolhydraten", waarde: voedingGemPerDag.koolhydraten, eenheid: "g", aanbevolen: 260, kleur: G.groenMid },
+            { label: "Vetten", waarde: voedingGemPerDag.vetten, eenheid: "g", aanbevolen: 70, kleur: G.groenLicht },
+            { label: "Vezels", waarde: voedingGemPerDag.vezels, eenheid: "g", aanbevolen: 30, kleur: G.zandDeep },
+          ].map(({ label, waarde, eenheid, aanbevolen, kleur }) => {
+            const pct = Math.min(Math.round(waarde / aanbevolen * 100), 100);
+            return (
+              <div key={label} style={{ background: G.zand, borderRadius: 8, padding: "12px 10px", textAlign: "center" }}>
+                <div style={{ fontSize: 20, fontWeight: 600, color: kleur, lineHeight: 1 }}>{waarde}</div>
+                <div style={{ fontSize: 9.5, color: G.tekstZacht, marginTop: 1 }}>{eenheid}</div>
+                <div style={{ fontFamily: "Georgia,serif", fontSize: 11, color: G.tekst, marginTop: 5, marginBottom: 6 }}>{label}</div>
+                <div style={{ height: 4, background: G.zandMid, borderRadius: 2, overflow: "hidden" }}>
+                  <div style={{ width: `${pct}%`, height: "100%", background: kleur, borderRadius: 2, transition: "width .4s" }} />
+                </div>
+                <div style={{ fontSize: 9.5, color: G.tekstZacht, marginTop: 3 }}>{pct}% van dagdoel</div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ fontSize: 10.5, color: G.tekstZacht, fontStyle: "italic", borderTop: `1px solid ${G.zandMid}`, paddingTop: 8 }}>
+          ⚠️ Schattingen gebaseerd op gerechtstype, niet op exacte ingrediënten. Dagdoelen zijn richtlijnen voor een volwassen persoon (ADH). De avondmaaltijd vertegenwoordigt doorgaans ~35% van de dagelijkse inname.
+        </div>
+      </>, { marginBottom: 0 })}
+    </div>
+  );
+}
+
+const DEFAULT_GEZIN = [
+  { naam: "Vader", avatar: "V", kleur: G.groen, rol: "Volwassene", dieet: ["Vegetarisch","Vis"] },
+  { naam: "Moeder", avatar: "M", kleur: G.groenMid, rol: "Volwassene", dieet: ["Vegetarisch","Vis"] },
+  { naam: "Zoon", avatar: "Z", kleur: G.zandDeep, rol: "7 jaar", dieet: ["Vegetarisch"] },
+  { naam: "Dochter", avatar: "D", kleur: G.groenLicht, rol: "5 jaar", dieet: ["Vegetarisch"] },
+];
+
+function GezinPage({ savedData, onSave }) {
+  const [gezin, setGezinState] = useState(savedData || DEFAULT_GEZIN);
+  const [inputs, setInputs] = useState(["","","",""]);
+
+  const setGezin = (g) => { setGezinState(g); if (onSave) onSave(g); };
+
+  const addDieet = (i) => {
+    const v = inputs[i].trim();
+    if (!v || gezin[i].dieet.includes(v)) return;
+    const updated = gezin.map((p, idx) => idx === i ? { ...p, dieet: [...p.dieet, v] } : p);
+    setGezin(updated);
+    setInputs(inputs.map((inp, idx) => idx === i ? "" : inp));
+  };
+
+  const removeDieet = (i, item) => {
+    setGezin(gezin.map((p, idx) => idx === i ? { ...p, dieet: p.dieet.filter(d => d !== item) } : p));
+  };
+
+  return (
+    <div style={{ padding: 24, maxWidth: 700 }}>
+      <div style={{ fontFamily: "Georgia,serif", fontSize: 24, color: G.groen, marginBottom: 4 }}>Ons gezin</div>
+      <div style={{ fontSize: 12.5, color: G.tekstMid, marginBottom: 20 }}>Dieetwensen per gezinslid</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 12 }}>
+        {gezin.map((p, i) => (
+          <div key={i} style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, padding: 18, textAlign: "center" }}>
+            <div style={{ width: 52, height: 52, borderRadius: "50%", background: p.kleur, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Georgia,serif", fontSize: 20, color: "#fff", margin: "0 auto 10px" }}>{p.avatar}</div>
+            <div style={{ fontFamily: "Georgia,serif", fontSize: 14, color: G.tekst, marginBottom: 3 }}>{p.naam}</div>
+            <div style={{ fontSize: 10.5, color: G.tekstZacht, marginBottom: 12 }}>{p.rol}</div>
+            <div style={{ marginBottom: 9 }}>
+              {p.dieet.map(d => (
+                <div key={d} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 7px", background: G.zand, borderRadius: 7, marginBottom: 3, fontSize: 11.5 }}>
+                  <span>{d}</span>
+                  <span onClick={() => removeDieet(i, d)} style={{ cursor: "pointer", color: G.tekstZacht, fontSize: 12 }}>✕</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 4 }}>
+              <input value={inputs[i]} onChange={e => setInputs(inputs.map((v, idx) => idx === i ? e.target.value : v))} onKeyDown={e => e.key === "Enter" && addDieet(i)} placeholder="Dieetwens..." style={{ flex: 1, border: `1px solid ${G.zandMid}`, borderRadius: 7, padding: "4px 7px", fontSize: 11, background: G.zand, outline: "none", color: G.tekst }} />
+              <button onClick={() => addDieet(i)} style={{ padding: "4px 7px", background: G.groen, color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontSize: 12 }}>+</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+// ── localStorage helpers ──────────────────────────────────────────────────
+const LS_RECEPTEN     = "tw_recepten_v2";
+const LS_PLANNING     = "tw_planning_v2";
+const LS_GEZIN        = "tw_gezin_v2";
+const LS_APIKEY       = "tw_apikey_v1";
+const LS_GESCHIEDENIS = "tw_geschiedenis_v1";
+
+function loadGeschiedenis() {
+  try { return JSON.parse(localStorage.getItem(LS_GESCHIEDENIS) || "{}"); } catch { return {}; }
+}
+function saveGeschiedenis(g) {
+  try { localStorage.setItem(LS_GESCHIEDENIS, JSON.stringify(g)); } catch {}
+}
+// Sla een maaltijd op voor een specifieke datum (ISO: YYYY-MM-DD)
+function slaOpInGeschiedenis(datum, maaltijdNaam, weerIcon, weerTemp) {
+  const g = loadGeschiedenis();
+  g[datum] = { maaltijd: maaltijdNaam, weer: weerIcon || null, temp: weerTemp || null, opgeslagenOp: new Date().toISOString() };
+  saveGeschiedenis(g);
+}
+
+function loadApiKey() {
+  try { return localStorage.getItem(LS_APIKEY) || ""; } catch { return ""; }
+}
+function saveApiKey(k) {
+  try { localStorage.setItem(LS_APIKEY, k); } catch {}
+}
+// Centrale fetch-helper die altijd de juiste headers meestuurt
+async function claudeFetch(body) {
+  const key = loadApiKey();
+  const headers = { "Content-Type": "application/json" };
+  if (key) {
+    headers["x-api-key"] = key;
+    headers["anthropic-version"] = "2023-06-01";
+    headers["anthropic-beta"] = "pdfs-2024-09-25";
+  }
+  const resp = await fetch("http://localhost:3131/v1/messages", {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body)
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${resp.status}`);
+  }
+  return resp.json();
+}
+
+function loadRecepten() {
+  try {
+    const raw = localStorage.getItem(LS_RECEPTEN);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+function saveRecepten(r) {
+  try { localStorage.setItem(LS_RECEPTEN, JSON.stringify(r)); } catch {}
+}
+
+function loadPlanning() {
+  try {
+    const raw = localStorage.getItem(LS_PLANNING);
+    if (!raw) return null;
+    const p = JSON.parse(raw);
+    // Recepten in planning zijn geserialiseerd als plain objects — matchen op id
+    return p;
+  } catch { return null; }
+}
+
+function savePlanning(p) {
+  try { localStorage.setItem(LS_PLANNING, JSON.stringify(p)); } catch {}
+}
+
+function loadGezin() {
+  try {
+    const raw = localStorage.getItem(LS_GEZIN);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+function saveGezin(g) {
+  try { localStorage.setItem(LS_GEZIN, JSON.stringify(g)); } catch {}
+}
+
+// ── Root app met localStorage ─────────────────────────────────────────────
+function AppWithStorage() {
+  const [pagina, setPagina] = useState("planner");
+  const [apiKey, setApiKeyState] = useState(() => loadApiKey());
+  const [toonApiKey, setToonApiKey] = useState(() => !loadApiKey());
+  const [recepten, setReceptenState] = useState(() => loadRecepten() || initRecepten);
+  const [planning, setPlanningState] = useState(() => {
+    const saved = loadPlanning();
+    if (!saved) return initPlanning;
+    // Koppel recepten terug via id
+    const receptenData = loadRecepten() || initRecepten;
+    const receptenMap = Object.fromEntries(receptenData.map(r => [r.id, r]));
+    const result = {};
+    for (const [k, v] of Object.entries(saved)) {
+      result[k] = { ...v, recept: v.recept ? (receptenMap[v.recept.id] || v.recept) : null };
+    }
+    return result;
+  });
+  const [gezinData, setGezinDataState] = useState(() => loadGezin() || null);
+
+  const setRecepten = (r) => { setReceptenState(r); saveRecepten(r); };
+  const setPlanning = (p) => { setPlanningState(p); savePlanning(p); };
+
+  const nav = [
+    { key: "planner", label: "Weekplanning", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="4" x2="9" y2="9"/></svg> },
+    { key: "recepten", label: "Recepten", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 19V6a2 2 0 012-2h12a2 2 0 012 2v13"/><path d="M4 19h16"/><path d="M8 11h8M8 15h5"/></svg> },
+    { key: "boodschappen", label: "Boodschappen", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg> },
+    { key: "kalender", label: "Geschiedenis", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><circle cx="8" cy="14" r="1.2" fill="currentColor"/><circle cx="12" cy="14" r="1.2" fill="currentColor"/><circle cx="16" cy="14" r="1.2" fill="currentColor"/><circle cx="8" cy="18" r="1.2" fill="currentColor"/><circle cx="12" cy="18" r="1.2" fill="currentColor"/></svg> },
+    { key: "statistieken", label: "Statistieken", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> },
+    { key: "gezin", label: "Gezin", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> },
+  ];
+
+  return (
+    <div style={{ display: "flex", height: "100vh", fontFamily: "\'DM Sans\',sans-serif", fontSize: 14, color: G.tekst, background: G.zand, overflow: "hidden" }}>
+      <nav style={{ width: 200, background: G.groen, padding: "22px 0", display: "flex", flexDirection: "column", flexShrink: 0, height: "100vh" }}>
+        <div style={{ padding: "0 20px 20px", borderBottom: "1px solid rgba(255,255,255,.1)", marginBottom: 14 }}>
+          <div style={{ fontFamily: "Georgia,serif", fontSize: 17, color: "#FAFAF7", lineHeight: 1.3 }}>Tafel &amp; Week</div>
+          <div style={{ fontSize: 10, color: G.groenLicht, marginTop: 3, letterSpacing: ".06em", textTransform: "uppercase" }}>Maaltijdplanner</div>
+        </div>
+        {nav.map(n => (
+          <div key={n.key} onClick={() => setPagina(n.key)} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 20px", color: pagina === n.key ? "#fff" : "rgba(255,255,255,.6)", cursor: "pointer", borderLeft: `3px solid ${pagina === n.key ? G.zandMid : "transparent"}`, background: pagina === n.key ? "rgba(255,255,255,.1)" : "transparent", fontSize: 13 }}>
+            {n.icon}<span>{n.label}</span>
+          </div>
+        ))}
+        <div style={{ padding: "12px 16px", marginTop: "auto", borderTop: "1px solid rgba(255,255,255,.1)" }}>
+          {toonApiKey ? (
+            <div>
+              <div style={{ fontSize: 10, color: G.groenLicht, marginBottom: 5, letterSpacing: ".04em" }}>Anthropic API key</div>
+              <input
+                type="password"
+                placeholder="sk-ant-..."
+                defaultValue={apiKey}
+                onBlur={e => {
+                  const k = e.target.value.trim();
+                  setApiKeyState(k);
+                  saveApiKey(k);
+                  if (k) setToonApiKey(false);
+                }}
+                style={{ width: "100%", background: "rgba(255,255,255,.1)", border: "1px solid rgba(255,255,255,.2)", borderRadius: 6, padding: "5px 8px", fontSize: 11, color: "#fff", outline: "none", fontFamily: "monospace" }}
+              />
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,.35)", marginTop: 4, lineHeight: 1.4 }}>
+                Nodig voor PDF uitlezen &amp; boodschappenlijst. Wordt lokaal opgeslagen.
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,.4)" }}>API key ingesteld ✓</div>
+              <span onClick={() => setToonApiKey(true)} style={{ fontSize: 10, color: G.groenLicht, cursor: "pointer", textDecoration: "underline" }}>wijzig</span>
+            </div>
+          )}
+        </div>
+      </nav>
+      <main style={{ flex: 1, overflowY: "auto" }}>
+        {pagina === "planner" && <PlannerPage planning={planning} setPlanning={setPlanning} recepten={recepten} />}
+        {pagina === "recepten" && <ReceptenPage recepten={recepten} setRecepten={setRecepten} />}
+        {pagina === "boodschappen" && <BoodschappenPage planning={planning} />}
+        {pagina === "kalender" && <KalenderPage />}
+        {pagina === "statistieken" && <StatistiekenPage recepten={recepten} planning={planning} />}
+        {pagina === "gezin" && <GezinPage savedData={gezinData} onSave={(g) => { setGezinDataState(g); saveGezin(g); }} />}
+      </main>
+    </div>
+  );
+}
+
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(<AppWithStorage />);
+</script>
+
+<!-- Service Worker registratie -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .catch(err => console.warn('SW registratie mislukt:', err));
+  });
+}
+</script>
+</body>
+</html>
