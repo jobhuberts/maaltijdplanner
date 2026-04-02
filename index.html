@@ -41,6 +41,23 @@ body { font-family: "DM Sans", sans-serif; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #C4B496; border-radius: 3px; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 767px) {
+  /* Voorkom iOS auto-zoom op focus */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* Minimale touch target voor alle knoppen */
+  button { min-height: 44px; touch-action: manipulation; }
+
+  /* Selectboxen ook groter */
+  select { min-height: 44px; padding: 10px 8px !important; }
+
+  /* Tap feedback */
+  button:active, [role="button"]:active { opacity: 0.75; }
+
+  /* Voorkom horizontal overflow */
+  body { overflow-x: hidden; }
+}
 </style>
 </head>
 <body>
@@ -543,6 +560,7 @@ function ReceptDetailModal({ recept, alleRecepten, onClose, onSave }) {
 
 // ─── PAGINA: WEEKPLANNING ───────────────────────────────────────────────────
 function PlannerPage({ planning, setPlanning, recepten }) {
+  const mobile = window.innerWidth < 768;
   const [weekend, setWeekend] = useState({ vrijdag: "", zaterdag: "", zondag: "" });
   const [weer, setWeer] = useState([]);
   const [uploadNaam, setUploadNaam] = useState("");
@@ -1194,18 +1212,18 @@ function PlannerPage({ planning, setPlanning, recepten }) {
   };
 
   return (
-    <div style={{ padding: 24, maxWidth: 860 }}>
-      <div style={{ fontFamily: "Georgia,serif", fontSize: 24, color: G.groen, marginBottom: 4 }}>Weekplanning</div>
-      <div style={{ fontSize: 12.5, color: G.tekstMid, marginBottom: 20 }}>Plan je avondmaaltijden voor maandag t/m donderdag</div>
+    <div style={{ padding: mobile ? 16 : 24, maxWidth: 860 }}>
+      <div style={{ fontFamily: "Georgia,serif", fontSize: mobile ? 20 : 24, color: G.groen, marginBottom: 4 }}>Weekplanning</div>
+      <div style={{ fontSize: mobile ? 14 : 12.5, color: G.tekstMid, marginBottom: 20 }}>Plan je avondmaaltijden voor maandag t/m donderdag</div>
 
       {/* Weekend */}
-      <div style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, padding: "18px 20px", marginBottom: 14 }}>
-        <div style={{ fontFamily: "Georgia,serif", fontSize: 14, color: G.groen, marginBottom: 12 }}>Dit weekend gegeten</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+      <div style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, padding: mobile ? "16px" : "18px 20px", marginBottom: 14 }}>
+        <div style={{ fontFamily: "Georgia,serif", fontSize: 15, color: G.groen, marginBottom: 12 }}>Dit weekend gegeten</div>
+        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr 1fr", gap: mobile ? 8 : 10 }}>
           {["vrijdag","zaterdag","zondag"].map(d => (
             <div key={d} style={{ background: G.zand, borderRadius: 8, padding: "10px 12px", border: `1px solid ${G.zandMid}` }}>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 500, color: G.groenMid, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 5 }}>{d}</label>
-              <input value={weekend[d]} onChange={e => setWeekend({ ...weekend, [d]: e.target.value })} placeholder="Wat gegeten?" style={{ width: "100%", border: `1px solid ${G.zandMid}`, background: G.kaart, borderRadius: 7, padding: "6px 8px", fontSize: 12, color: G.tekst, outline: "none" }} />
+              <label style={{ display: "block", fontSize: 11, fontWeight: 500, color: G.groenMid, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6 }}>{d}</label>
+              <input value={weekend[d]} onChange={e => setWeekend({ ...weekend, [d]: e.target.value })} placeholder="Wat gegeten?" style={{ width: "100%", border: `1px solid ${G.zandMid}`, background: G.kaart, borderRadius: 7, padding: "10px 12px", color: G.tekst, outline: "none" }} />
             </div>
           ))}
         </div>
@@ -1222,7 +1240,7 @@ function PlannerPage({ planning, setPlanning, recepten }) {
           {/* Tab knoppen */}
           <div style={{ display: "flex", gap: 4, marginBottom: 10, background: G.zand, borderRadius: 8, padding: 3 }}>
             {[["plak", "📋 Plak tekst"], ["upload", "📄 Upload PDF"]].map(([key, label]) => (
-              <button key={key} onClick={() => setFactuurTab(key)} style={{ flex: 1, padding: "5px 8px", borderRadius: 6, border: "none", background: factuurTab === key ? G.kaart : "transparent", color: factuurTab === key ? G.groen : G.tekstZacht, fontSize: 12, cursor: "pointer", fontWeight: factuurTab === key ? 500 : 400, boxShadow: factuurTab === key ? "0 1px 3px rgba(0,0,0,.07)" : "none", transition: "all .12s" }}>
+              <button key={key} onClick={() => setFactuurTab(key)} style={{ flex: 1, padding: mobile ? "10px 8px" : "5px 8px", borderRadius: 6, border: "none", background: factuurTab === key ? G.kaart : "transparent", color: factuurTab === key ? G.groen : G.tekstZacht, fontSize: mobile ? 14 : 12, cursor: "pointer", fontWeight: factuurTab === key ? 500 : 400, boxShadow: factuurTab === key ? "0 1px 3px rgba(0,0,0,.07)" : "none", transition: "all .12s" }}>
                 {label}
               </button>
             ))}
@@ -1246,7 +1264,7 @@ function PlannerPage({ planning, setPlanning, recepten }) {
                   {plakStatus === "laden" && <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ display: "inline-block", width: 11, height: 11, border: `2px solid ${G.groenZacht}`, borderTopColor: G.groen, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} /> Verwerken...</span>}
                   {!plakStatus && plakTekst && <span>{plakTekst.length} tekens</span>}
                 </div>
-                <button onClick={verwerkPlakTekst} disabled={!plakTekst.trim() || plakStatus === "laden"} style={{ padding: "6px 14px", background: plakTekst.trim() ? G.groen : G.groenLicht, color: "#fff", border: "none", borderRadius: 7, cursor: plakTekst.trim() ? "pointer" : "not-allowed", fontSize: 12 }}>
+                <button onClick={verwerkPlakTekst} disabled={!plakTekst.trim() || plakStatus === "laden"} style={{ padding: mobile ? "12px 18px" : "6px 14px", background: plakTekst.trim() ? G.groen : G.groenLicht, color: "#fff", border: "none", borderRadius: 7, cursor: plakTekst.trim() ? "pointer" : "not-allowed", fontSize: mobile ? 15 : 12 }}>
                   Herken ingrediënten
                 </button>
               </div>
@@ -1304,8 +1322,8 @@ function PlannerPage({ planning, setPlanning, recepten }) {
               <div style={{ fontSize: 10, color: G.tekstZacht, marginBottom: 6 }}>Herkend uit factuur ({pdfIngredienten.length}) — klik om te verwijderen:</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                 {pdfIngredienten.map(ingr => (
-                  <span key={ingr} onClick={() => verwijderPdf(ingr)} style={{ fontSize: 11, padding: "2px 8px", background: "#E8F4E8", color: G.groenMid, borderRadius: 20, cursor: "pointer", border: `1px solid ${G.groenZacht}`, display: "flex", alignItems: "center", gap: 3 }}>
-                    {ingr} <span style={{ fontSize: 10, opacity: 0.6 }}>✕</span>
+                  <span key={ingr} onClick={() => verwijderPdf(ingr)} style={{ fontSize: mobile ? 14 : 11, padding: mobile ? "8px 12px" : "2px 8px", background: "#E8F4E8", color: G.groenMid, borderRadius: 20, cursor: "pointer", border: `1px solid ${G.groenZacht}`, display: "flex", alignItems: "center", gap: 4 }}>
+                    {ingr} <span style={{ fontSize: mobile ? 12 : 10, opacity: 0.6 }}>✕</span>
                   </span>
                 ))}
               </div>
@@ -1326,15 +1344,15 @@ function PlannerPage({ planning, setPlanning, recepten }) {
               onChange={e => setHandmatigInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && voegHandmatigToe()}
               placeholder="bijv. rijst, kikkererwten, kokosmelk"
-              style={{ flex: 1, border: `1px solid ${G.zandMid}`, borderRadius: 8, padding: "7px 10px", fontSize: 12.5, color: G.tekst, background: G.zand, outline: "none", fontFamily: "inherit" }}
+              style={{ flex: 1, border: `1px solid ${G.zandMid}`, borderRadius: 8, padding: mobile ? "12px 14px" : "7px 10px", color: G.tekst, background: G.zand, outline: "none", fontFamily: "inherit" }}
             />
-            <button onClick={voegHandmatigToe} style={{ padding: "7px 14px", background: G.groen, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 12.5 }}>+</button>
+            <button onClick={voegHandmatigToe} style={{ padding: mobile ? "12px 18px" : "7px 14px", background: G.groen, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: mobile ? 18 : 12.5, fontWeight: 500 }}>+</button>
           </div>
           {handmatigIngr.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
               {handmatigIngr.map(ingr => (
-                <span key={ingr} onClick={() => verwijderHandmatig(ingr)} style={{ fontSize: 11, padding: "2px 8px", background: G.zandMid, color: G.zandDeep, borderRadius: 20, cursor: "pointer", border: `1px solid ${G.zandDonker}`, display: "flex", alignItems: "center", gap: 3 }}>
-                  {ingr} <span style={{ fontSize: 10, opacity: 0.6 }}>✕</span>
+                <span key={ingr} onClick={() => verwijderHandmatig(ingr)} style={{ fontSize: mobile ? 14 : 11, padding: mobile ? "8px 12px" : "2px 8px", background: G.zandMid, color: G.zandDeep, borderRadius: 20, cursor: "pointer", border: `1px solid ${G.zandDonker}`, display: "flex", alignItems: "center", gap: 4 }}>
+                  {ingr} <span style={{ fontSize: mobile ? 12 : 10, opacity: 0.6 }}>✕</span>
                 </span>
               ))}
             </div>
@@ -1343,19 +1361,20 @@ function PlannerPage({ planning, setPlanning, recepten }) {
       </div>
 
       {/* Acties */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
-        <button onClick={planWeek} style={{ padding: "8px 16px", background: G.groen, color: "#fff", border: "none", borderRadius: 8, fontSize: 12.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      <div style={{ display: "flex", gap: mobile ? 10 : 8, marginBottom: 18, flexWrap: "wrap" }}>
+        <button onClick={planWeek} style={{ flex: mobile ? 1 : "unset", padding: mobile ? "13px 16px" : "8px 16px", background: G.groen, color: "#fff", border: "none", borderRadius: 10, fontSize: mobile ? 15 : 12.5, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontWeight: 500 }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
           Plan week
         </button>
-        <button onClick={() => setPlanning(Object.fromEntries(DAGEN.map(d => [d.key, { ...planning[d.key], recept: null }])))} style={{ padding: "8px 16px", background: G.kaart, color: G.tekstMid, border: `1px solid ${G.zandMid}`, borderRadius: 8, fontSize: 12.5, cursor: "pointer" }}>
+        <button onClick={() => setPlanning(Object.fromEntries(DAGEN.map(d => [d.key, { ...planning[d.key], recept: null }])))} style={{ flex: mobile ? 1 : "unset", padding: mobile ? "13px 16px" : "8px 16px", background: G.kaart, color: G.tekstMid, border: `1px solid ${G.zandMid}`, borderRadius: 10, fontSize: mobile ? 15 : 12.5, cursor: "pointer" }}>
           Reset week
         </button>
-        <button onClick={deelWeekAlsPDF} style={{ padding: "8px 16px", background: G.kaart, color: G.groen, border: `1px solid ${G.groenLicht}`, borderRadius: 8, fontSize: 12.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-          Deel week
-        </button>
-
+        {!mobile && (
+          <button onClick={deelWeekAlsPDF} style={{ padding: "8px 16px", background: G.kaart, color: G.groen, border: `1px solid ${G.groenLicht}`, borderRadius: 8, fontSize: 12.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+            Deel week
+          </button>
+        )}
       </div>
 
       {/* Weer */}
@@ -1390,7 +1409,7 @@ function PlannerPage({ planning, setPlanning, recepten }) {
       )}
 
       {/* Dag grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: mobile ? 10 : 12 }}>
         {DAGEN.map((d, idx) => {
           const p = planning[d.key];
           const r = p.recept;
@@ -1410,10 +1429,10 @@ function PlannerPage({ planning, setPlanning, recepten }) {
               overflow: "hidden",
               boxShadow: isTweedaags ? `0 0 0 3px ${G.groenPale}` : "none"
             }}>
-              <div style={{ background: isTweedaags ? G.groenZacht : G.groenPale, borderBottom: `1px solid ${G.groenZacht}`, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ background: isTweedaags ? G.groenZacht : G.groenPale, borderBottom: `1px solid ${G.groenZacht}`, padding: mobile ? "13px 16px" : "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                  <span style={{ fontFamily: "Georgia,serif", fontSize: 14, color: G.groen }}>{d.label}</span>
-                  <span style={{ fontSize: 11, color: G.tekstZacht }}>{komendeDatum(d.dagNr)}</span>
+                  <span style={{ fontFamily: "Georgia,serif", fontSize: mobile ? 17 : 14, color: G.groen }}>{d.label}</span>
+                  <span style={{ fontSize: mobile ? 13 : 11, color: G.tekstZacht }}>{komendeDatum(d.dagNr)}</span>
                   {isTweedaags && (
                     <span style={{ fontSize: 9.5, padding: "2px 7px", borderRadius: 20, fontWeight: 600, background: G.groen, color: "#fff", letterSpacing: ".02em" }}>
                       dag {dagNr} van 2
@@ -1424,16 +1443,18 @@ function PlannerPage({ planning, setPlanning, recepten }) {
                   {p.thuiswerk ? "60 min" : "30 min"}
                 </span>
               </div>
-              <div style={{ padding: "12px 14px" }}>
-                <div style={{ display: "flex", gap: 7, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
-                  <select value={String(p.thuiswerk)} onChange={e => setPlanning({ ...planning, [d.key]: { ...p, thuiswerk: e.target.value === "true" } })} style={{ border: `1px solid ${G.zandMid}`, background: G.zand, borderRadius: 7, padding: "4px 7px", fontSize: 11.5, color: G.tekst, outline: "none" }}>
+              <div style={{ padding: mobile ? "14px 16px" : "12px 14px" }}>
+                <div style={{ display: "flex", gap: mobile ? 8 : 7, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+                  <select value={String(p.thuiswerk)} onChange={e => setPlanning({ ...planning, [d.key]: { ...p, thuiswerk: e.target.value === "true" } })} style={{ border: `1px solid ${G.zandMid}`, background: G.zand, borderRadius: 7, padding: "8px 10px", color: G.tekst, outline: "none", flex: mobile ? 1 : "unset" }}>
                     <option value="true">Thuis werk</option>
                     <option value="false">Op kantoor</option>
                   </select>
-                  <input type="number" value={p.personen} min={1} max={8} onChange={e => setPlanning({ ...planning, [d.key]: { ...p, personen: parseInt(e.target.value) } })} style={{ width: 50, border: `1px solid ${G.zandMid}`, background: G.zand, borderRadius: 7, padding: "4px 7px", fontSize: 11.5, color: G.tekst, outline: "none" }} />
-                  <span style={{ fontSize: 11, color: G.tekstZacht }}>pers.</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <input type="number" value={p.personen} min={1} max={8} onChange={e => setPlanning({ ...planning, [d.key]: { ...p, personen: parseInt(e.target.value) } })} style={{ width: mobile ? 64 : 50, border: `1px solid ${G.zandMid}`, background: G.zand, borderRadius: 7, padding: "8px 10px", color: G.tekst, outline: "none", textAlign: "center" }} />
+                    <span style={{ fontSize: mobile ? 14 : 11, color: G.tekstZacht }}>pers.</span>
+                  </div>
                 </div>
-                <div onClick={() => setSelectDag(d)} style={{ background: r ? (isTweedaags ? "#F0F9F0" : G.kaart) : G.groenPale, border: `1px ${r ? "solid" : "dashed"} ${r ? (isTweedaags ? G.groenLicht : G.zandMid) : G.groenZacht}`, borderRadius: 8, padding: "10px 12px", cursor: "pointer", minHeight: 70, display: "flex", flexDirection: "column", justifyContent: "center", gap: 5 }}>
+                <div onClick={() => setSelectDag(d)} style={{ background: r ? (isTweedaags ? "#F0F9F0" : G.kaart) : G.groenPale, border: `1px ${r ? "solid" : "dashed"} ${r ? (isTweedaags ? G.groenLicht : G.zandMid) : G.groenZacht}`, borderRadius: 10, padding: mobile ? "14px 16px" : "10px 12px", cursor: "pointer", minHeight: mobile ? 80 : 70, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6 }}>
                   {r ? (() => {
                     // Bereken "laatst gegeten"
                     const gd = r.gemaaktData && r.gemaaktData.length > 0 ? r.gemaaktData[0] : null;
@@ -1446,7 +1467,7 @@ function PlannerPage({ planning, setPlanning, recepten }) {
                       <>
                         {/* Naam + favoriet hartje */}
                         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 6 }}>
-                          <div style={{ fontSize: 12.5, fontWeight: 500, color: G.tekst, lineHeight: 1.3, flex: 1 }}>{r.naam}</div>
+                          <div style={{ fontSize: mobile ? 15 : 12.5, fontWeight: 500, color: G.tekst, lineHeight: 1.3, flex: 1 }}>{r.naam}</div>
                           {r.favoriet && (
                             <svg width="13" height="13" viewBox="0 0 24 24" fill={G.groen} stroke={G.groen} strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
                           )}
@@ -1475,7 +1496,7 @@ function PlannerPage({ planning, setPlanning, recepten }) {
                         </div>
                       </>
                     );
-                  })() : <div style={{ color: G.tekstZacht, fontSize: 11.5, textAlign: "center" }}>+ Kies recept</div>}
+                  })() : <div style={{ color: G.tekstZacht, fontSize: mobile ? 15 : 11.5, textAlign: "center" }}>+ Kies recept</div>}
                 </div>
                 {r && (
                   <button onClick={() => setPlanning({ ...planning, [d.key]: { ...p, recept: null } })} style={{ marginTop: 8, width: "100%", padding: "5px", background: "#f0f0ea", color: G.tekstMid, border: `1px solid ${G.zandMid}`, borderRadius: 7, fontSize: 11, cursor: "pointer" }}>
@@ -1701,6 +1722,7 @@ function ToevoegenModal({ onClose, onSave, volgendId }) {
 
 // ─── PAGINA: RECEPTEN ───────────────────────────────────────────────────────
 function ReceptenPage({ recepten, setRecepten }) {
+  const mobile = window.innerWidth < 768;
   const [zoek, setZoek] = useState("");
   const [filterSeizoen, setFilterSeizoen] = useState("");
   const [filterTag, setFilterTag] = useState("");
@@ -1734,36 +1756,37 @@ function ReceptenPage({ recepten, setRecepten }) {
   const alleTags = [...new Set(recepten.flatMap(r => r.tags))].sort();
 
   return (
-    <div style={{ padding: 24, maxWidth: 860 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-        <div style={{ fontFamily: "Georgia,serif", fontSize: 24, color: G.groen }}>Receptenbibliotheek</div>
-        <button onClick={() => setToonToevoegen(true)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 14px", background: G.groen, color: "#fff", border: "none", borderRadius: 8, fontSize: 12.5, cursor: "pointer", flexShrink: 0 }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Recept toevoegen
+    <div style={{ padding: mobile ? 16 : 24, maxWidth: 860 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4, gap: 10 }}>
+        <div style={{ fontFamily: "Georgia,serif", fontSize: mobile ? 20 : 24, color: G.groen }}>Recepten</div>
+        <button onClick={() => setToonToevoegen(true)} style={{ display: "flex", alignItems: "center", gap: 5, padding: mobile ? "10px 14px" : "8px 14px", background: G.groen, color: "#fff", border: "none", borderRadius: 8, fontSize: mobile ? 14 : 12.5, cursor: "pointer", flexShrink: 0 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          {mobile ? "Toevoegen" : "Recept toevoegen"}
         </button>
       </div>
-      <div style={{ fontSize: 12.5, color: G.tekstMid, marginBottom: 20 }}>Jouw recepten van Albert Heijn Allerhande</div>
+      <div style={{ fontSize: mobile ? 14 : 12.5, color: G.tekstMid, marginBottom: 16 }}>Jouw recepten van Albert Heijn Allerhande</div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <input value={zoek} onChange={e => setZoek(e.target.value)} placeholder="Zoek recept..." style={{ flex: 1, minWidth: 160, border: `1px solid ${G.zandMid}`, background: G.kaart, borderRadius: 8, padding: "7px 10px", fontSize: 12.5, color: G.tekst, outline: "none" }} />
-        {/* Favoriet-filterknop */}
-        <button onClick={() => setFilterFavoriet(f => !f)} title="Toon alleen favorieten" style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 12px", border: `1px solid ${filterFavoriet ? G.groenLicht : G.zandMid}`, borderRadius: 8, background: filterFavoriet ? G.groenPale : G.kaart, cursor: "pointer", fontSize: 12, color: filterFavoriet ? G.groen : G.tekstMid, transition: "all .12s" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+        <input value={zoek} onChange={e => setZoek(e.target.value)} placeholder="Zoek recept..." style={{ flex: 1, minWidth: 140, border: `1px solid ${G.zandMid}`, background: G.kaart, borderRadius: 8, padding: mobile ? "12px 14px" : "7px 10px", color: G.tekst, outline: "none" }} />
+        <button onClick={() => setFilterFavoriet(f => !f)} title="Toon alleen favorieten" style={{ display: "flex", alignItems: "center", gap: 5, padding: mobile ? "12px 14px" : "7px 12px", border: `1px solid ${filterFavoriet ? G.groenLicht : G.zandMid}`, borderRadius: 8, background: filterFavoriet ? G.groenPale : G.kaart, cursor: "pointer", fontSize: mobile ? 14 : 12, color: filterFavoriet ? G.groen : G.tekstMid }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill={filterFavoriet ? G.groen : "none"} stroke={filterFavoriet ? G.groen : G.groenLicht} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-          Favorieten
+          {!mobile && "Favorieten"}
         </button>
-        <select value={filterSeizoen} onChange={e => setFilterSeizoen(e.target.value)} style={{ border: `1px solid ${G.zandMid}`, background: G.kaart, borderRadius: 8, padding: "7px 9px", fontSize: 11.5, color: G.tekst, outline: "none" }}>
+        <select value={filterSeizoen} onChange={e => setFilterSeizoen(e.target.value)} style={{ border: `1px solid ${G.zandMid}`, background: G.kaart, borderRadius: 8, padding: mobile ? "12px 10px" : "7px 9px", color: G.tekst, outline: "none", flex: mobile ? 1 : "unset" }}>
           <option value="">Alle seizoenen</option>
           {["lente","zomer","herfst","winter"].map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-        <select value={filterTag} onChange={e => setFilterTag(e.target.value)} style={{ border: `1px solid ${G.zandMid}`, background: G.kaart, borderRadius: 8, padding: "7px 9px", fontSize: 11.5, color: G.tekst, outline: "none" }}>
-          <option value="">Alle tags</option>
-          {alleTags.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
+        {!mobile && (
+          <select value={filterTag} onChange={e => setFilterTag(e.target.value)} style={{ border: `1px solid ${G.zandMid}`, background: G.kaart, borderRadius: 8, padding: "7px 9px", fontSize: 11.5, color: G.tekst, outline: "none" }}>
+            <option value="">Alle tags</option>
+            {alleTags.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        )}
       </div>
 
-      <div style={{ fontSize: 11.5, color: G.tekstZacht, marginBottom: 10 }}>{filtered.length} van {recepten.length} recepten</div>
+      <div style={{ fontSize: mobile ? 13 : 11.5, color: G.tekstZacht, marginBottom: 10 }}>{filtered.length} van {recepten.length} recepten</div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(175px,1fr))", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(auto-fill,minmax(175px,1fr))", gap: mobile ? 10 : 12 }}>
         {filtered.map(r => <ReceptKaart key={r.id} recept={r} onClick={() => setDetailRecept(r)} onToggleFavoriet={() => toggleFavoriet(r.id)} />)}
       </div>
 
@@ -1789,6 +1812,7 @@ function ReceptenPage({ recepten, setRecepten }) {
 
 // ─── PAGINA: BOODSCHAPPEN ───────────────────────────────────────────────────
 function BoodschappenPage({ planning }) {
+  const mobile = window.innerWidth < 768;
   const gepland = DAGEN.filter(d => planning[d.key].recept);
   const [afgevinkt, setAfgevinkt] = useState({});
   const [aiLijst, setAiLijst] = useState("");
@@ -1818,9 +1842,9 @@ function BoodschappenPage({ planning }) {
   };
 
   return (
-    <div style={{ padding: 24, maxWidth: 700 }}>
-      <div style={{ fontFamily: "Georgia,serif", fontSize: 24, color: G.groen, marginBottom: 4 }}>Boodschappenlijst</div>
-      <div style={{ fontSize: 12.5, color: G.tekstMid, marginBottom: 20 }}>Gegenereerd op basis van je weekplanning</div>
+    <div style={{ padding: mobile ? 16 : 24, maxWidth: 700 }}>
+      <div style={{ fontFamily: "Georgia,serif", fontSize: mobile ? 20 : 24, color: G.groen, marginBottom: 4 }}>Boodschappenlijst</div>
+      <div style={{ fontSize: mobile ? 14 : 12.5, color: G.tekstMid, marginBottom: 20 }}>Gegenereerd op basis van je weekplanning</div>
 
       {gepland.length === 0 ? (
         <div style={{ background: G.kaart, border: `1px solid ${G.zandMid}`, borderRadius: 12, padding: 32, textAlign: "center", color: G.tekstZacht }}>
@@ -1875,9 +1899,9 @@ function BoodschappenPage({ planning }) {
                       Reken dubbele hoeveelheid ingrediënten
                     </div>
                   )}
-                  <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "4px 0", fontSize: 12.5, color: afgevinkt[checkKey] ? G.tekstZacht : G.tekst, textDecoration: afgevinkt[checkKey] ? "line-through" : "none" }}>
-                    <input type="checkbox" checked={!!afgevinkt[checkKey]} onChange={e => setAfgevinkt({ ...afgevinkt, [checkKey]: e.target.checked })} style={{ accentColor: G.groen }} />
-                    <a href={r.url} target="_blank" rel="noreferrer" style={{ color: G.groenMid, fontSize: 11.5 }}>Bekijk ingrediënten op AH ↗</a>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: mobile ? "8px 0" : "4px 0", fontSize: mobile ? 15 : 12.5, color: afgevinkt[checkKey] ? G.tekstZacht : G.tekst, textDecoration: afgevinkt[checkKey] ? "line-through" : "none" }}>
+                    <input type="checkbox" checked={!!afgevinkt[checkKey]} onChange={e => setAfgevinkt({ ...afgevinkt, [checkKey]: e.target.checked })} style={{ accentColor: G.groen, width: mobile ? 20 : 14, height: mobile ? 20 : 14 }} />
+                    <a href={r.url} target="_blank" rel="noreferrer" style={{ color: G.groenMid, fontSize: mobile ? 14 : 11.5 }}>Bekijk ingrediënten op AH ↗</a>
                   </div>
                   {/* Extra ingrediënten uit notities */}
                   {r.notes && r.notes.trim() && (() => {
