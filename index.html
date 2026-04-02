@@ -19,6 +19,21 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyD0yr0M7_c5mtL35GXCXCuFGwkmkUoeCr8",
+    authDomain: "maaltijdplanner-999ec.firebaseapp.com",
+    databaseURL: "https://maaltijdplanner-999ec-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "maaltijdplanner-999ec",
+    storageBucket: "maaltijdplanner-999ec.firebasestorage.app",
+    messagingSenderId: "312756068655",
+    appId: "1:312756068655:web:e603e2a9d3ca81b136c1da"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const fbDb = firebase.database();
+</script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: "DM Sans", sans-serif; }
@@ -2566,6 +2581,7 @@ function loadGeschiedenis() {
 }
 function saveGeschiedenis(g) {
   try { localStorage.setItem(LS_GESCHIEDENIS, JSON.stringify(g)); } catch {}
+  fbDb.ref("geschiedenis").set(g).catch(() => {});
 }
 // Sla een maaltijd op voor een specifieke datum (ISO: YYYY-MM-DD)
 function slaOpInGeschiedenis(datum, maaltijdNaam, weerIcon, weerTemp) {
@@ -2611,6 +2627,7 @@ function loadRecepten() {
 
 function saveRecepten(r) {
   try { localStorage.setItem(LS_RECEPTEN, JSON.stringify(r)); } catch {}
+  fbDb.ref("recepten").set(r).catch(() => {});
 }
 
 function loadPlanning() {
@@ -2625,6 +2642,7 @@ function loadPlanning() {
 
 function savePlanning(p) {
   try { localStorage.setItem(LS_PLANNING, JSON.stringify(p)); } catch {}
+  fbDb.ref("planning").set(p).catch(() => {});
 }
 
 function loadGezin() {
@@ -2637,6 +2655,7 @@ function loadGezin() {
 
 function saveGezin(g) {
   try { localStorage.setItem(LS_GEZIN, JSON.stringify(g)); } catch {}
+  fbDb.ref("gezin").set(g).catch(() => {});
 }
 
 // ── Mobile: Home tegels ───────────────────────────────────────────────────
@@ -2732,6 +2751,48 @@ function AppWithStorage() {
     const handler = (e) => setIsMobile(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  // ── Firebase realtime sync ──────────────────────────────────────────────
+  useEffect(() => {
+    // Recepten
+    const refRecepten = fbDb.ref("recepten");
+    refRecepten.on("value", snap => {
+      const data = snap.val();
+      if (data && Array.isArray(data)) {
+        setReceptenState(data);
+        try { localStorage.setItem(LS_RECEPTEN, JSON.stringify(data)); } catch {}
+      }
+    });
+    // Planning
+    const refPlanning = fbDb.ref("planning");
+    refPlanning.on("value", snap => {
+      const data = snap.val();
+      if (data && typeof data === "object") {
+        const receptenData = loadRecepten() || initRecepten;
+        const receptenMap = Object.fromEntries(receptenData.map(r => [r.id, r]));
+        const result = {};
+        for (const [k, v] of Object.entries(data)) {
+          result[k] = { ...v, recept: v.recept ? (receptenMap[v.recept.id] || v.recept) : null };
+        }
+        setPlanningState(result);
+        try { localStorage.setItem(LS_PLANNING, JSON.stringify(data)); } catch {}
+      }
+    });
+    // Gezin
+    const refGezin = fbDb.ref("gezin");
+    refGezin.on("value", snap => {
+      const data = snap.val();
+      if (data) {
+        setGezinDataState(data);
+        try { localStorage.setItem(LS_GEZIN, JSON.stringify(data)); } catch {}
+      }
+    });
+    return () => {
+      refRecepten.off();
+      refPlanning.off();
+      refGezin.off();
+    };
   }, []);
 
   const setRecepten = (r) => { setReceptenState(r); saveRecepten(r); };
