@@ -559,7 +559,7 @@ function ReceptDetailModal({ recept, alleRecepten, onClose, onSave }) {
 }
 
 // ─── PAGINA: WEEKPLANNING ───────────────────────────────────────────────────
-function PlannerPage({ planning, setPlanning, recepten }) {
+function PlannerPage({ planning, setPlanning, recepten, gezinData }) {
   const mobile = window.innerWidth < 768;
   const [weekend, setWeekend] = useState({ vrijdag: "", zaterdag: "", zondag: "" });
   const [weer, setWeer] = useState([]);
@@ -757,6 +757,22 @@ function PlannerPage({ planning, setPlanning, recepten }) {
     const nu = Date.now();
     const TWEE_WEKEN = 14 * 24 * 60 * 60 * 1000;
 
+    // ── Gezinsprofiel: dieetwensen ──────────────────────────────────────────
+    // Verzamel alle unieke dieetwensen van alle gezinsleden (lowercase)
+    const alleDieetwensen = gezinData
+      ? [...new Set(gezinData.flatMap(lid => lid.dieet || []).map(d => d.toLowerCase().trim()))]
+      : [];
+
+    // Koppel dieetwens aan ingrediënt-sleutelwoorden om in receptnamen te zoeken
+    const DIEET_KEYWORDS = {
+      "vegetarisch":  ["kip","vlees","gehakt","spek","bacon","kalkoen","lam","varken","tartaar","biefstuk","worst","hamburger","pulled"],
+      "veganistisch": ["kip","vlees","gehakt","spek","bacon","kalkoen","lam","varken","tartaar","biefstuk","worst","hamburger","pulled","kaas","feta","ricotta","mascarpone","halloumi","cottagecheese","mozzarella"],
+      "vis":          ["zalm","tonijn","forel","garnalen","zeebaars","haring","kabeljauw","ansjovis","makreel","inktvis","seafood"],
+      "glutenvrij":   ["pasta","spaghetti","tagliatelle","orzo","lasagne","noedels","wrap","macaroni","linguine","tortellini","gnocchi"],
+      "noten":        ["noten","cashew","pinda","amandel","pistache","walnoot","pecan","hazelnoot"],
+      "lactosevrij":  ["kaas","feta","ricotta","mascarpone","room","halloumi","cottagecheese","mozzarella","yoghurt"],
+    };
+
     // Weer samenvatting voor uitleg
     const gemiddeldTemp = weer.length > 0
       ? Math.round(weer.slice(0,5).reduce((s,w) => s + w.temp, 0) / Math.min(5, weer.length))
@@ -830,7 +846,19 @@ function PlannerPage({ planning, setPlanning, recepten }) {
       const woorden = r.naam.toLowerCase().split(/[\s-]+/);
       if (woorden.some(w => w.length > 4 && weekendTekst.includes(w))) s -= 6;
 
-      // 6. Willekeur: kleine toss om niet altijd exact dezelfde top te kiezen
+      // 6. Dieetwensen gezin: sterke straf als recept niet past bij iemand in het gezin
+      if (alleDieetwensen.length > 0) {
+        const receptNaam = r.naam.toLowerCase();
+        for (const wens of alleDieetwensen) {
+          const keywords = DIEET_KEYWORDS[wens] || [wens]; // fallback: gebruik de wens zelf als zoekwoord
+          if (keywords.some(kw => receptNaam.includes(kw))) {
+            s -= 12; // Harde straf: recept past niet bij gezinsprofiel
+            break;
+          }
+        }
+      }
+
+      // 7. Willekeur: kleine toss om niet altijd exact dezelfde top te kiezen
       s += Math.random() * 0.8;
 
       return s;
@@ -845,9 +873,12 @@ function PlannerPage({ planning, setPlanning, recepten }) {
     const gebruikteIds = new Set();
     const gekozenRecepten = []; // voor uitleg
 
-    // Gooi een muntstuk: ~35% kans dat er überhaupt een 2-daags recept wordt overwogen
-    // Dit zorgt voor variatie tussen weken zodat het niet altijd 2-daags is
-    const magMeerdaagsDezweWeek = Math.random() < 0.35;
+    // ── Personen-gemiddelde: meer mensen → vaker 2-daags plannen (bespaart werk) ──
+    const dagWaarden = Object.values(planning);
+    const gemiddeldPersonen = dagWaarden.reduce((s, d) => s + (d.personen || 4), 0) / dagWaarden.length;
+    // Bij 2 pers: ~25% kans; bij 4 pers: ~45%; bij 6+ pers: ~65% (max)
+    const meerdaagsKans = Math.min(0.65, 0.15 + gemiddeldPersonen * 0.08);
+    const magMeerdaagsDezweWeek = Math.random() < meerdaagsKans;
 
     let i = 0;
 
@@ -884,10 +915,11 @@ function PlannerPage({ planning, setPlanning, recepten }) {
         if (kandidatenNa.length >= resterend - 2) {
           const topMeerdaags = [...meerdaags].sort((a,b) => score(b,gebruikteCats) - score(a,gebruikteCats))[0];
           const topEendaags  = eendaags.length ? [...eendaags].sort((a,b) => score(b,gebruikteCats) - score(a,gebruikteCats))[0] : null;
-          // 2-daags wint alleen als het minstens 2 punten beter scoort — geen automatische voorkeur
+          // 2-daags wint als het beter scoort; drempel lager bij meer personen (méér mensen = lager de balk)
+          const meerdaagsDropempel = Math.max(0.5, 2.5 - (gemiddeldPersonen - 2) * 0.4);
           const scoreMeerdaags = score(topMeerdaags, gebruikteCats);
           const scoreEendaags  = topEendaags ? score(topEendaags, gebruikteCats) : -99;
-          if (scoreMeerdaags > scoreEendaags + 2) {
+          if (scoreMeerdaags > scoreEendaags + meerdaagsDropempel) {
             pool = meerdaags;
           }
         }
@@ -2856,7 +2888,7 @@ function AppWithStorage() {
         {/* Pagina inhoud */}
         <main style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
           {mobilePagina === "home"        && <HomeTegels onKlik={setMobilePagina} />}
-          {mobilePagina === "planner"     && <PlannerPage planning={planning} setPlanning={setPlanning} recepten={recepten} />}
+          {mobilePagina === "planner"     && <PlannerPage planning={planning} setPlanning={setPlanning} recepten={recepten} gezinData={gezinData} />}
           {mobilePagina === "recepten"    && <ReceptenPage recepten={recepten} setRecepten={setRecepten} />}
           {mobilePagina === "boodschappen"&& <BoodschappenPage planning={planning} />}
           {mobilePagina === "kalender"    && <KalenderPage />}
@@ -2933,7 +2965,7 @@ function AppWithStorage() {
         </div>
       </nav>
       <main style={{ flex: 1, overflowY: "auto" }}>
-        {pagina === "planner"      && <PlannerPage planning={planning} setPlanning={setPlanning} recepten={recepten} />}
+        {pagina === "planner"      && <PlannerPage planning={planning} setPlanning={setPlanning} recepten={recepten} gezinData={gezinData} />}
         {pagina === "recepten"     && <ReceptenPage recepten={recepten} setRecepten={setRecepten} />}
         {pagina === "boodschappen" && <BoodschappenPage planning={planning} />}
         {pagina === "kalender"     && <KalenderPage />}
