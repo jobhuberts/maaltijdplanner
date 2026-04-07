@@ -475,18 +475,17 @@ function ReceptDetailModal({ recept, alleRecepten, onClose, onSave, mobile = fal
     <div style={outerStyle} onClick={mobile ? onClose : undefined}>
       <div style={innerStyle} onClick={mobile ? e => e.stopPropagation() : undefined}>
         {mobile && (
-          <div onClick={onClose} style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 0 6px", cursor: "pointer", WebkitTapHighlightColor: "transparent", flexShrink: 0 }}>
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: G.zandMid, marginBottom: 6, flexShrink: 0 }} />
-            <div style={{ fontSize: 12, color: G.tekstZacht, letterSpacing: ".02em", whiteSpace: "nowrap" }}>Sluiten</div>
+          <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 6px" }}>
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: G.zandMid }} />
           </div>
         )}
         {/* Header */}
-        <div style={{ background: G.groen, padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderRadius: "12px 12px 0 0" }}>
-          <div>
+        <div style={{ background: G.groen, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderRadius: "12px 12px 0 0", gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontFamily: "Georgia,serif", fontSize: 17, color: "#fff", lineHeight: 1.3 }}>{recept.naam}</div>
             {recept.nick && <div style={{ fontSize: 11, color: G.groenLicht, fontStyle: "italic", marginTop: 2 }}>{recept.nick}</div>}
           </div>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,.15)", border: "none", color: "#fff", width: mobile ? 36 : 26, height: mobile ? 36 : 26, borderRadius: "50%", cursor: "pointer", fontSize: mobile ? 16 : 14, flexShrink: 0 }}>✕</button>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,.15)", border: "none", color: "#fff", width: 36, height: 36, minWidth: 36, borderRadius: "50%", cursor: "pointer", fontSize: 16, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>✕</button>
         </div>
 
         <div style={{ padding: mobile ? "16px 20px" : "18px 20px", maxHeight: mobile ? undefined : "72vh", flex: mobile ? 1 : undefined, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
