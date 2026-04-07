@@ -626,9 +626,9 @@ function ReceptDetailModal({ recept, alleRecepten, onClose, onSave, mobile = fal
 function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, isMobile = false }) {
   const mobile = isMobile;
 
-  // Selectie: welke aankomende dagen worden ingepland
-  const [aankomendAantal, setAankomendAantal] = useState(5); // zichtbaar venster; kan uitgebreid via + knop
-  const [selectedAankomend, setSelectedAankomend] = useState(() => new Set(Array.from({length:5}, (_,i) => datumOffset(i))));
+  // Selectie: welke aankomende dagen worden ingepland (voor Plan selectie knop)
+  const [aankomendAantal, setAankomendAantal] = useState(7);
+  const [selectedAankomend, setSelectedAankomend] = useState(() => new Set(Array.from({length:7}, (_,i) => datumOffset(i))));
   // Verleden sectie open/dicht
   const [verldenOpen, setVerldenOpen] = useState(false);
   // Recept kiezen voor een verleden dag (ISO string) of een komende dag
@@ -1555,13 +1555,10 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
         </div>
       )}
 
-      {/* Dag grid — aankomende geselecteerde dagen + recente verleden met recept */}
+      {/* Dag grid — gisteren + vandaag + komende 6 dagen (altijd 8 vaste dagen) */}
       {(() => {
         const vandaag = vandaagISO();
-        const zichtbareKeys = [...new Set([
-          ...[...selectedAankomend],
-          ...Object.keys(planning).filter(k => k < vandaag && k >= datumOffset(-7) && planning[k]?.recept),
-        ])].sort();
+        const zichtbareKeys = Array.from({length: 8}, (_, i) => datumOffset(i - 1)); // gisteren t/m dag+6
         if (zichtbareKeys.length === 0) return (
           <div style={{ background: G.kaart, border: `1px dashed ${G.zandMid}`, borderRadius: 12, padding: 32, textAlign: "center", color: G.tekstZacht, fontSize: 13 }}>
             Selecteer aankomende dagen om te plannen
@@ -1571,6 +1568,7 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
       <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: mobile ? 10 : 12 }}>
         {zichtbareKeys.map((key, idx) => {
           const isVerleden = key < vandaag;
+          const isVandaag = key === vandaag;
           const p = planning[key] || { thuiswerk: false, personen: 4, recept: null };
           const r = p.recept;
           const prevKey = zichtbareKeys[idx - 1];
@@ -1589,23 +1587,24 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
           return (
             <div key={key} style={{
               background: G.kaart, borderRadius: 12,
-              border: isTweedaags ? `2px solid ${G.groenLicht}` : `1px solid ${G.zandMid}`,
+              border: isVandaag ? `2px solid ${G.groen}` : isTweedaags ? `2px solid ${G.groenLicht}` : `1px solid ${G.zandMid}`,
               overflow: "hidden",
-              boxShadow: isTweedaags ? `0 0 0 3px ${G.groenPale}` : "none",
+              boxShadow: isVandaag ? `0 0 0 3px ${G.groenPale}` : isTweedaags ? `0 0 0 3px ${G.groenPale}` : "none",
               opacity: isVerleden ? 0.88 : 1,
             }}>
-              <div style={{ background: isVerleden ? G.zandMid : (isTweedaags ? G.groenZacht : G.groenPale), borderBottom: `1px solid ${isVerleden ? G.zandDonker : G.groenZacht}`, padding: mobile ? "13px 16px" : "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ background: isVandaag ? G.groen : isVerleden ? G.zandMid : (isTweedaags ? G.groenZacht : G.groenPale), borderBottom: `1px solid ${isVandaag ? G.groenMid : isVerleden ? G.zandDonker : G.groenZacht}`, padding: mobile ? "13px 16px" : "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                  {isVerleden && <span style={{ fontSize: 9.5, padding: "1px 6px", borderRadius: 20, background: G.zandDeep, color: "#fff", fontWeight: 600 }}>Verleden</span>}
-                  <span style={{ fontFamily: "Georgia,serif", fontSize: mobile ? 17 : 14, color: isVerleden ? G.tekstMid : G.groen }}>{dagTitel}</span>
-                  <span style={{ fontSize: mobile ? 13 : 11, color: G.tekstZacht }}>{formatDDMM(key)}</span>
+                  {isVerleden && <span style={{ fontSize: 9.5, padding: "1px 6px", borderRadius: 20, background: G.zandDeep, color: "#fff", fontWeight: 600 }}>Gisteren</span>}
+                  {isVandaag && <span style={{ fontSize: 9.5, padding: "1px 6px", borderRadius: 20, background: "rgba(255,255,255,.25)", color: "#fff", fontWeight: 600 }}>Vandaag</span>}
+                  <span style={{ fontFamily: "Georgia,serif", fontSize: mobile ? 17 : 14, color: isVandaag ? "#fff" : isVerleden ? G.tekstMid : G.groen }}>{dagTitel}</span>
+                  <span style={{ fontSize: mobile ? 13 : 11, color: isVandaag ? "rgba(255,255,255,.75)" : G.tekstZacht }}>{formatDDMM(key)}</span>
                   {isTweedaags && (
                     <span style={{ fontSize: 9.5, padding: "2px 7px", borderRadius: 20, fontWeight: 600, background: G.groen, color: "#fff", letterSpacing: ".02em" }}>
                       dag {dagNr} van 2
                     </span>
                   )}
                 </div>
-                {!isVerleden && <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, fontWeight: 500, background: p.thuiswerk ? G.groenZacht : G.zandMid, color: p.thuiswerk ? G.groen : G.zandDeep }}>
+                {!isVerleden && <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 20, fontWeight: 500, background: isVandaag ? "rgba(255,255,255,.2)" : p.thuiswerk ? G.groenZacht : G.zandMid, color: isVandaag ? "#fff" : p.thuiswerk ? G.groen : G.zandDeep }}>
                   {p.thuiswerk ? "60 min" : "30 min"}
                 </span>}
               </div>
@@ -1667,14 +1666,36 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
                   })() : <div style={{ color: G.tekstZacht, fontSize: mobile ? 15 : 11.5, textAlign: "center" }}>+ Kies recept</div>}
                 </div>
                 {r && (
-                  <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                    <button onClick={(e) => { e.stopPropagation(); setSelectDag({ key, label: `${dagTitel} ${formatDDMM(key)}` }); }} style={{ flex: 1, padding: mobile ? "11px 8px" : "7px 8px", background: G.groenPale, color: G.groenMid, border: `1px solid ${G.groenZacht}`, borderRadius: 8, fontSize: mobile ? 13 : 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-                      Wijzig
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); setPlanning({ ...planning, [key]: { ...p, recept: null } }); }} style={{ flex: 1, padding: mobile ? "11px 8px" : "7px 8px", background: "#f0f0ea", color: G.tekstMid, border: `1px solid ${G.zandMid}`, borderRadius: 8, fontSize: mobile ? 13 : 11, cursor: "pointer" }}>
-                      ✕ Verwijder
-                    </button>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+                    {/* Gemaakt vandaag knop — alleen op de dag van vandaag */}
+                    {isVandaag && (() => {
+                      const vandaagStr = vandaagISO();
+                      const alGemaakt = (r.gemaaktData || []).some(d => d.startsWith(vandaagStr));
+                      return (
+                        <button onClick={(e) => {
+                          e.stopPropagation();
+                          if (alGemaakt) return;
+                          const nu = new Date().toISOString();
+                          const bijgewerkt = { ...r, gemaaktData: [nu, ...(r.gemaaktData || [])], laatstGemaakt: nu };
+                          setRecepten(recepten.map(re => re.id === r.id ? bijgewerkt : re));
+                          setPlanning({ ...planning, [key]: { ...p, recept: bijgewerkt } });
+                        }} style={{ width: "100%", padding: mobile ? "13px" : "9px", background: alGemaakt ? G.groenZacht : G.groen, color: alGemaakt ? G.groenMid : "#fff", border: `1px solid ${alGemaakt ? G.groenLicht : G.groen}`, borderRadius: 8, fontSize: mobile ? 14 : 12, cursor: alGemaakt ? "default" : "pointer", fontWeight: 500, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                          {alGemaakt
+                            ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg> Gemaakt vandaag!</>
+                            : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg> Gemaakt vandaag</>
+                          }
+                        </button>
+                      );
+                    })()}
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={(e) => { e.stopPropagation(); setSelectDag({ key, label: `${dagTitel} ${formatDDMM(key)}` }); }} style={{ flex: 1, padding: mobile ? "11px 8px" : "7px 8px", background: G.groenPale, color: G.groenMid, border: `1px solid ${G.groenZacht}`, borderRadius: 8, fontSize: mobile ? 13 : 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                        Wijzig
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); setPlanning({ ...planning, [key]: { ...p, recept: null } }); }} style={{ flex: 1, padding: mobile ? "11px 8px" : "7px 8px", background: "#f0f0ea", color: G.tekstMid, border: `1px solid ${G.zandMid}`, borderRadius: 8, fontSize: mobile ? 13 : 11, cursor: "pointer" }}>
+                        ✕ Verwijder
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1687,7 +1708,7 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
 
       {/* Vorige dagen — log of bewerk wat je eerder gegeten hebt */}
       {(() => {
-        const verldenDagen = Array.from({length:7}, (_,i) => datumOffset(-(7-i)));
+        const verldenDagen = Array.from({length:6}, (_,i) => datumOffset(-(7-i))); // dag -7 t/m dag -2 (gisteren zit in het grid)
         const leegAantal = verldenDagen.filter(k => !planning[k]?.recept).length;
         return (
           <div style={{ marginTop: 18 }}>
