@@ -352,10 +352,10 @@ function ReceptKaart({ recept, onClick, onToggleFavoriet, compact = false }) {
             {recept.dagen > 0 && <span style={{ fontSize: 9.5, background: G.groenPale, color: G.groenMid, padding: "2px 5px", borderRadius: 10 }}>{recept.dagen}d</span>}
           </div>
         </div>
-        {(recept.tags.length > 0 || seizoenenArr.length > 0) && (
+        {((recept.tags || []).length > 0 || seizoenenArr.length > 0) && (
           <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginTop: 6 }}>
             {seizoenenArr.map(s => <span key={s} style={{ fontSize: 9.5, padding: "1px 6px", background: "#E8F5E9", color: G.groenMid, borderRadius: 10 }}>{s}</span>)}
-            {recept.tags.map(t => <span key={t} style={{ fontSize: 9.5, padding: "1px 6px", background: G.zand, color: G.zandDeep, borderRadius: 10, border: `1px solid ${G.zandMid}` }}>{t}</span>)}
+            {(recept.tags || []).map(t => <span key={t} style={{ fontSize: 9.5, padding: "1px 6px", background: G.zand, color: G.zandDeep, borderRadius: 10, border: `1px solid ${G.zandMid}` }}>{t}</span>)}
           </div>
         )}
       </div>
@@ -363,9 +363,41 @@ function ReceptKaart({ recept, onClick, onToggleFavoriet, compact = false }) {
   );
 }
 
-function SelectModal({ dagLabel, onSelect, onClose, recepten: receptenLijst }) {
+function SelectModal({ dagLabel, onSelect, onClose, recepten: receptenLijst, mobile = false }) {
   const [zoek, setZoek] = useState("");
   const filtered = receptenLijst.filter(r => (r.naam + " " + r.nick).toLowerCase().includes(zoek.toLowerCase()));
+
+  if (mobile) {
+    return (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(30,46,30,.5)", zIndex: 200 }} onClick={onClose}>
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: G.kaart, borderRadius: "20px 20px 0 0", maxHeight: "90dvh", display: "flex", flexDirection: "column", boxShadow: "0 -4px 30px rgba(44,74,46,.2)" }} onClick={e => e.stopPropagation()}>
+          {/* Drag handle */}
+          <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: G.zandMid }} />
+          </div>
+          {/* Header */}
+          <div style={{ padding: "8px 20px 14px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <div style={{ fontFamily: "Georgia,serif", fontSize: 18, color: G.groen }}>Kies een recept</div>
+              <div style={{ fontSize: 12, color: G.tekstZacht, marginTop: 2 }}>{dagLabel}</div>
+            </div>
+            <button onClick={onClose} style={{ background: G.zand, border: "none", color: G.tekstMid, width: 36, height: 36, borderRadius: "50%", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+          </div>
+          {/* Zoek */}
+          <div style={{ padding: "0 16px 12px" }}>
+            <input value={zoek} onChange={e => setZoek(e.target.value)} placeholder="Zoek recept..." autoFocus style={{ width: "100%", border: `1px solid ${G.zandMid}`, borderRadius: 10, padding: "12px 14px", fontSize: 15, color: G.tekst, background: G.zand, outline: "none", boxSizing: "border-box" }} />
+          </div>
+          {/* Grid */}
+          <div style={{ overflowY: "auto", padding: "0 16px 32px", WebkitOverflowScrolling: "touch" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {filtered.map(r => <ReceptKaart key={r.id} recept={r} compact onClick={() => onSelect(r)} />)}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(30,46,30,.5)", zIndex: 200, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" }}>
       <div style={{ background: G.kaart, borderRadius: 12, width: "100%", maxWidth: 560, boxShadow: "0 8px 40px rgba(44,74,46,.2)" }}>
@@ -394,7 +426,7 @@ function alleTagsUitDatabase(recepten) {
   return [...set].sort();
 }
 
-function ReceptDetailModal({ recept, alleRecepten, onClose, onSave }) {
+function ReceptDetailModal({ recept, alleRecepten, onClose, onSave, mobile = false }) {
   const [notes, setNotes] = useState(recept.notes);
   const [seizoenen, setSeizoeenen] = useState(
     Array.isArray(recept.seizoen) ? [...recept.seizoen] : recept.seizoen ? [recept.seizoen] : []
@@ -431,19 +463,27 @@ function ReceptDetailModal({ recept, alleRecepten, onClose, onSave }) {
 
   const formatDatum = (iso) => new Date(iso).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
 
+  const outerStyle = mobile
+    ? { position: "fixed", inset: 0, background: "rgba(30,46,30,.55)", zIndex: 200 }
+    : { position: "fixed", inset: 0, background: "rgba(30,46,30,.55)", zIndex: 200, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" };
+  const innerStyle = mobile
+    ? { position: "absolute", bottom: 0, left: 0, right: 0, background: G.kaart, borderRadius: "20px 20px 0 0", maxHeight: "92dvh", display: "flex", flexDirection: "column", boxShadow: "0 -4px 30px rgba(44,74,46,.2)" }
+    : { background: G.kaart, borderRadius: 12, width: "100%", maxWidth: 520, boxShadow: "0 8px 40px rgba(44,74,46,.18)" };
+
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(30,46,30,.55)", zIndex: 200, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" }}>
-      <div style={{ background: G.kaart, borderRadius: 12, width: "100%", maxWidth: 520, boxShadow: "0 8px 40px rgba(44,74,46,.18)" }}>
+    <div style={outerStyle} onClick={mobile ? onClose : undefined}>
+      <div style={innerStyle} onClick={mobile ? e => e.stopPropagation() : undefined}>
+        {mobile && <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}><div style={{ width: 40, height: 4, borderRadius: 2, background: G.zandMid }} /></div>}
         {/* Header */}
         <div style={{ background: G.groen, padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderRadius: "12px 12px 0 0" }}>
           <div>
             <div style={{ fontFamily: "Georgia,serif", fontSize: 17, color: "#fff", lineHeight: 1.3 }}>{recept.naam}</div>
             {recept.nick && <div style={{ fontSize: 11, color: G.groenLicht, fontStyle: "italic", marginTop: 2 }}>{recept.nick}</div>}
           </div>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,.15)", border: "none", color: "#fff", width: 26, height: 26, borderRadius: "50%", cursor: "pointer", fontSize: 14, flexShrink: 0 }}>✕</button>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,.15)", border: "none", color: "#fff", width: mobile ? 36 : 26, height: mobile ? 36 : 26, borderRadius: "50%", cursor: "pointer", fontSize: mobile ? 16 : 14, flexShrink: 0 }}>✕</button>
         </div>
 
-        <div style={{ padding: "18px 20px", maxHeight: "72vh", overflowY: "auto" }}>
+        <div style={{ padding: mobile ? "16px 20px" : "18px 20px", maxHeight: mobile ? undefined : "72vh", flex: mobile ? 1 : undefined, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
           {recept.imageUrl && !imgErr && <img src={recept.imageUrl} onError={() => setImgErr(true)} style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 8, marginBottom: 14, display: "block" }} />}
 
           {/* Top meta row */}
@@ -583,21 +623,24 @@ function ReceptDetailModal({ recept, alleRecepten, onClose, onSave }) {
 }
 
 // ─── PAGINA: WEEKPLANNING ───────────────────────────────────────────────────
-function PlannerPage({ planning, setPlanning, recepten, gezinData }) {
-  const mobile = window.innerWidth < 768;
+function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, isMobile = false }) {
+  const mobile = isMobile;
 
-  // Selectie: welke aankomende dagen worden ingepland (vandaag + max 4 vooruit = max 5)
+  // Selectie: welke aankomende dagen worden ingepland
+  const [aankomendAantal, setAankomendAantal] = useState(5); // zichtbaar venster; kan uitgebreid via + knop
   const [selectedAankomend, setSelectedAankomend] = useState(() => new Set(Array.from({length:5}, (_,i) => datumOffset(i))));
   // Verleden sectie open/dicht
   const [verldenOpen, setVerldenOpen] = useState(false);
   // Recept kiezen voor een verleden dag (ISO string) of een komende dag
   const [selectDag, setSelectDag] = useState(null); // { key: ISO, label: string }
+  // Receptdetail bekijken vanuit de planning
+  const [detailRecept, setDetailRecept] = useState(null);
 
   const [weer, setWeer] = useState([]);
   const [uploadNaam, setUploadNaam] = useState("");
   const [pdfIngredienten, setPdfIngredienten] = useState([]);
   const [pdfStatus, setPdfStatus] = useState(""); // "" | "laden" | "ok" | "leeg" | "fout"
-  const [factuurTab, setFactuurTab] = useState("plak"); // "upload" | "plak"
+  const [factuurTab, setFactuurTab] = useState(null); // null = ingeklapt, "plak" | "upload" = open
   const [plakTekst, setPlakTekst] = useState("");
   const [plakStatus, setPlakStatus] = useState(""); // "" | "laden" | "ok"
   const [handmatigInput, setHandmatigInput] = useState("");
@@ -1269,8 +1312,8 @@ function PlannerPage({ planning, setPlanning, recepten, gezinData }) {
       {/* Aankomende dagen selectie */}
       <div style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, padding: mobile ? "14px 16px" : "16px 20px", marginBottom: 14 }}>
         <div style={{ fontSize: 11, fontWeight: 500, color: G.groenMid, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 12 }}>Welke dagen wil je plannen?</div>
-        <div style={{ display: "flex", gap: mobile ? 8 : 10, flexWrap: "wrap" }}>
-          {Array.from({length:5}, (_,i) => datumOffset(i)).map(key => {
+        <div style={{ display: "flex", gap: mobile ? 8 : 10, flexWrap: "wrap", alignItems: "center" }}>
+          {Array.from({length:aankomendAantal}, (_,i) => datumOffset(i)).map(key => {
             const aan = selectedAankomend.has(key);
             const rel = relatieveLabel(key);
             const heeftRecept = !!planning[key]?.recept;
@@ -1288,7 +1331,7 @@ function PlannerPage({ planning, setPlanning, recepten, gezinData }) {
                 cursor: "pointer",
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
                 position: "relative",
-                minWidth: mobile ? 60 : 68,
+                minWidth: mobile ? 72 : 68,
               }}>
                 <span style={{ fontSize: mobile ? 12 : 11, fontWeight: 600 }}>{rel || dagNaamVol(key).slice(0,2)}</span>
                 <span style={{ fontSize: 10.5, color: aan ? G.groenMid : G.tekstZacht }}>{formatDDMM(key)}</span>
@@ -1296,6 +1339,26 @@ function PlannerPage({ planning, setPlanning, recepten, gezinData }) {
               </button>
             );
           })}
+          {/* + knop: voeg volgende dag toe */}
+          {aankomendAantal < 14 && (
+            <button onClick={() => {
+              const volgendeKey = datumOffset(aankomendAantal);
+              setAankomendAantal(n => n + 1);
+              setSelectedAankomend(ns => new Set([...ns, volgendeKey]));
+            }} title={`Voeg ${dagNaamVol(datumOffset(aankomendAantal))} toe`} style={{
+              width: mobile ? 48 : 44, height: mobile ? 48 : 44,
+              borderRadius: 10,
+              border: `2px dashed ${G.zandMid}`,
+              background: G.zand,
+              color: G.tekstZacht,
+              cursor: "pointer",
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1,
+              fontSize: 18, fontWeight: 300,
+            }}>
+              +
+              <span style={{ fontSize: 9, color: G.tekstZacht }}>{formatDDMM(datumOffset(aankomendAantal))}</span>
+            </button>
+          )}
         </div>
         <div style={{ fontSize: 11, color: G.tekstZacht, marginTop: 10 }}>
           {selectedAankomend.size === 0 ? "Selecteer minimaal één dag" : `${selectedAankomend.size} dag${selectedAankomend.size > 1 ? "en" : ""} geselecteerd`}
@@ -1306,111 +1369,10 @@ function PlannerPage({ planning, setPlanning, recepten, gezinData }) {
       <div style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, padding: "18px 20px", marginBottom: 14 }}>
         <div style={{ fontFamily: "Georgia,serif", fontSize: 14, color: G.groen, marginBottom: 14 }}>Wat heb ik nog in huis?</div>
 
-        {/* Factuur sectie met tabs */}
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 8 }}>AH Factuur</div>
-
-          {/* Tab knoppen */}
-          <div style={{ display: "flex", gap: 4, marginBottom: 10, background: G.zand, borderRadius: 8, padding: 3 }}>
-            {[["plak", "📋 Plak tekst"], ["upload", "📄 Upload PDF"]].map(([key, label]) => (
-              <button key={key} onClick={() => setFactuurTab(key)} style={{ flex: 1, padding: mobile ? "10px 8px" : "5px 8px", borderRadius: 6, border: "none", background: factuurTab === key ? G.kaart : "transparent", color: factuurTab === key ? G.groen : G.tekstZacht, fontSize: mobile ? 14 : 12, cursor: "pointer", fontWeight: factuurTab === key ? 500 : 400, boxShadow: factuurTab === key ? "0 1px 3px rgba(0,0,0,.07)" : "none", transition: "all .12s" }}>
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* Tab: Plak tekst */}
-          {factuurTab === "plak" && (
-            <div>
-              <div style={{ fontSize: 11, color: G.tekstZacht, marginBottom: 7 }}>
-                Open je AH factuur, selecteer alles (Ctrl+A), kopieer (Ctrl+C) en plak hier:
-              </div>
-              <textarea
-                value={plakTekst}
-                onChange={e => { setPlakTekst(e.target.value); setPlakStatus(""); }}
-                placeholder="Plak hier de tekst van je AH factuur of bonnetje..."
-                style={{ width: "100%", border: `1px solid ${G.zandMid}`, borderRadius: 8, padding: "8px 10px", fontSize: 12, color: G.tekst, background: G.zand, outline: "none", fontFamily: "inherit", resize: "vertical", minHeight: 90, lineHeight: 1.5 }}
-              />
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 7 }}>
-                <div style={{ fontSize: 11, color: G.tekstZacht }}>
-                  {plakStatus === "ok" && <span style={{ color: G.groenMid }}>✓ Ingrediënten herkend en toegevoegd</span>}
-                  {plakStatus === "laden" && <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ display: "inline-block", width: 11, height: 11, border: `2px solid ${G.groenZacht}`, borderTopColor: G.groen, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} /> Verwerken...</span>}
-                  {!plakStatus && plakTekst && <span>{plakTekst.length} tekens</span>}
-                </div>
-                <button onClick={verwerkPlakTekst} disabled={!plakTekst.trim() || plakStatus === "laden"} style={{ padding: mobile ? "12px 18px" : "6px 14px", background: plakTekst.trim() ? G.groen : G.groenLicht, color: "#fff", border: "none", borderRadius: 7, cursor: plakTekst.trim() ? "pointer" : "not-allowed", fontSize: mobile ? 15 : 12 }}>
-                  Herken ingrediënten
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Tab: PDF upload */}
-          {factuurTab === "upload" && (
-            <div>
-              <label style={{ display: "flex", alignItems: "center", gap: 10, border: `1.5px dashed ${uploadNaam ? G.groenLicht : G.zandDonker}`, borderRadius: 9, padding: "12px 14px", cursor: "pointer", background: uploadNaam ? G.groenPale : G.zand, transition: "all .15s" }}>
-                <div style={{ width: 28, height: 28, background: uploadNaam ? G.groenZacht : G.zandMid, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  {uploadNaam
-                    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={G.groen} strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={G.zandDeep} strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                  }
-                </div>
-                <div>
-                  <div style={{ fontSize: 12.5, color: uploadNaam ? G.groen : G.tekstMid, fontWeight: uploadNaam ? 500 : 400 }}>
-                    {uploadNaam ? uploadNaam : "Upload AH factuur (PDF)"}
-                  </div>
-                  <div style={{ fontSize: 10.5, color: G.tekstZacht, marginTop: 2 }}>
-                    {uploadNaam
-                      ? pdfStatus === "laden" ? "Bezig met uitlezen..."
-                      : pdfStatus === "ok" ? `${pdfIngredienten.length} ingrediënten herkend`
-                      : pdfStatus === "leeg" ? "Geen ingrediënten gevonden"
-                      : pdfStatus === "fout" ? "Uitlezen mislukt — probeer Plak tekst"
-                      : "Verwerken..."
-                      : "Vereist een Anthropic API key (zie sidebar)"}
-                  </div>
-                </div>
-                <input type="file" accept=".pdf" style={{ display: "none" }} onChange={handlePDFChange} />
-              </label>
-              {pdfStatus === "geen-key" && (
-                <div style={{ marginTop: 8, fontSize: 11.5, color: "#7A4F00", background: "#FFF8E6", border: "1px solid #E8C96A", borderRadius: 7, padding: "7px 10px" }}>
-                  Geen API key ingesteld. Gebruik de tab "Plak tekst" — dat werkt altijd zonder API key.
-                </div>
-              )}
-              {pdfStatus === "laden" && (
-                <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: G.groenMid }}>
-                  <span style={{ display: "inline-block", width: 14, height: 14, border: `2px solid ${G.groenZacht}`, borderTopColor: G.groen, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                  Claude leest je factuur uit...
-                </div>
-              )}
-              {pdfStatus === "fout" && (
-                <div style={{ marginTop: 8, fontSize: 11.5, color: "#B03030", background: "#FEF0F0", border: "1px solid #F5C0C0", borderRadius: 7, padding: "7px 10px" }}>
-                  Kon de PDF niet uitlezen. Probeer de tab "Plak tekst".
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Herkende ingrediënten (beide tabs) */}
-          {pdfIngredienten.length > 0 && (
-            <div style={{ marginTop: 10 }}>
-              <div style={{ fontSize: 10, color: G.tekstZacht, marginBottom: 6 }}>Herkend uit factuur ({pdfIngredienten.length}) — klik om te verwijderen:</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                {pdfIngredienten.map(ingr => (
-                  <span key={ingr} onClick={() => verwijderPdf(ingr)} style={{ fontSize: mobile ? 14 : 11, padding: mobile ? "8px 12px" : "2px 8px", background: "#E8F4E8", color: G.groenMid, borderRadius: 20, cursor: "pointer", border: `1px solid ${G.groenZacht}`, display: "flex", alignItems: "center", gap: 4 }}>
-                    {ingr} <span style={{ fontSize: mobile ? 12 : 10, opacity: 0.6 }}>✕</span>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Scheidingslijn */}
-        <div style={{ borderTop: `1px solid ${G.zandMid}`, margin: "4px 0 14px" }} />
-
-        {/* Handmatige invoer */}
-        <div>
-          <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 7 }}>Zelf toevoegen</div>
-          <div style={{ fontSize: 11, color: G.tekstZacht, marginBottom: 8 }}>Ingrediënten van een andere winkel, of die je al langer hebt.</div>
+        {/* Handmatige invoer — primair */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 5 }}>Zelf toevoegen</div>
+          <div style={{ fontSize: 11, color: G.tekstZacht, marginBottom: 8 }}>Ingrediënten van een andere winkel, of die je al in huis hebt.</div>
           <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
             <input
               value={handmatigInput}
@@ -1425,9 +1387,117 @@ function PlannerPage({ planning, setPlanning, recepten, gezinData }) {
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
               {handmatigIngr.map(ingr => (
                 <span key={ingr} onClick={() => verwijderHandmatig(ingr)} style={{ fontSize: mobile ? 14 : 11, padding: mobile ? "8px 12px" : "2px 8px", background: G.zandMid, color: G.zandDeep, borderRadius: 20, cursor: "pointer", border: `1px solid ${G.zandDonker}`, display: "flex", alignItems: "center", gap: 4 }}>
-                  {ingr} <span style={{ fontSize: mobile ? 12 : 10, opacity: 0.6 }}>✕</span>
+                  {ingr} <span style={{ fontSize: mobile ? 14 : 10, padding: mobile ? "2px 2px" : "0", opacity: 0.6, lineHeight: 1 }}>✕</span>
                 </span>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* AH Factuur — secundair, inklapbaar */}
+        <div style={{ borderTop: `1px solid ${G.zandMid}`, paddingTop: 12 }}>
+          <button
+            onClick={() => setFactuurTab(factuurTab === null ? "plak" : null)}
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", padding: 0, color: G.tekstMid, fontSize: mobile ? 13 : 11.5 }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: factuurTab !== null ? "rotate(90deg)" : "none", transition: "transform .15s" }}><polyline points="9 18 15 12 9 6"/></svg>
+            Inladen vanuit AH factuur
+          </button>
+
+          {factuurTab !== null && (
+            <div style={{ marginTop: 10 }}>
+              {/* Tab knoppen */}
+              <div style={{ display: "flex", gap: 4, marginBottom: 10, background: G.zand, borderRadius: 8, padding: 3 }}>
+                {[["plak", "📋 Plak tekst"], ["upload", "📄 Upload PDF"]].map(([key, label]) => (
+                  <button key={key} onClick={() => setFactuurTab(key)} style={{ flex: 1, padding: mobile ? "10px 8px" : "5px 8px", borderRadius: 6, border: "none", background: factuurTab === key ? G.kaart : "transparent", color: factuurTab === key ? G.groen : G.tekstZacht, fontSize: mobile ? 14 : 12, cursor: "pointer", fontWeight: factuurTab === key ? 500 : 400, boxShadow: factuurTab === key ? "0 1px 3px rgba(0,0,0,.07)" : "none", transition: "all .12s" }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab: Plak tekst */}
+              {factuurTab === "plak" && (
+                <div>
+                  <div style={{ fontSize: 11, color: G.tekstZacht, marginBottom: 7 }}>
+                    Open je AH factuur, selecteer alles (Ctrl+A), kopieer (Ctrl+C) en plak hier:
+                  </div>
+                  <textarea
+                    value={plakTekst}
+                    onChange={e => { setPlakTekst(e.target.value); setPlakStatus(""); }}
+                    placeholder="Plak hier de tekst van je AH factuur of bonnetje..."
+                    style={{ width: "100%", border: `1px solid ${G.zandMid}`, borderRadius: 8, padding: "8px 10px", fontSize: 12, color: G.tekst, background: G.zand, outline: "none", fontFamily: "inherit", resize: "vertical", minHeight: 90, lineHeight: 1.5 }}
+                  />
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 7 }}>
+                    <div style={{ fontSize: 11, color: G.tekstZacht }}>
+                      {plakStatus === "ok" && <span style={{ color: G.groenMid }}>✓ Ingrediënten herkend en toegevoegd</span>}
+                      {plakStatus === "laden" && <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ display: "inline-block", width: 11, height: 11, border: `2px solid ${G.groenZacht}`, borderTopColor: G.groen, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} /> Verwerken...</span>}
+                      {!plakStatus && plakTekst && <span>{plakTekst.length} tekens</span>}
+                    </div>
+                    <button onClick={verwerkPlakTekst} disabled={!plakTekst.trim() || plakStatus === "laden"} style={{ padding: mobile ? "12px 18px" : "6px 14px", background: plakTekst.trim() ? G.groen : G.groenLicht, color: "#fff", border: "none", borderRadius: 7, cursor: plakTekst.trim() ? "pointer" : "not-allowed", fontSize: mobile ? 15 : 12 }}>
+                      Herken ingrediënten
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab: PDF upload */}
+              {factuurTab === "upload" && (
+                <div>
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, border: `1.5px dashed ${uploadNaam ? G.groenLicht : G.zandDonker}`, borderRadius: 9, padding: "12px 14px", cursor: "pointer", background: uploadNaam ? G.groenPale : G.zand, transition: "all .15s" }}>
+                    <div style={{ width: 28, height: 28, background: uploadNaam ? G.groenZacht : G.zandMid, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      {uploadNaam
+                        ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={G.groen} strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={G.zandDeep} strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      }
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12.5, color: uploadNaam ? G.groen : G.tekstMid, fontWeight: uploadNaam ? 500 : 400 }}>
+                        {uploadNaam ? uploadNaam : "Upload AH factuur (PDF)"}
+                      </div>
+                      <div style={{ fontSize: 10.5, color: G.tekstZacht, marginTop: 2 }}>
+                        {uploadNaam
+                          ? pdfStatus === "laden" ? "Bezig met uitlezen..."
+                          : pdfStatus === "ok" ? `${pdfIngredienten.length} ingrediënten herkend`
+                          : pdfStatus === "leeg" ? "Geen ingrediënten gevonden"
+                          : pdfStatus === "fout" ? "Uitlezen mislukt — probeer Plak tekst"
+                          : "Verwerken..."
+                          : "Vereist een Anthropic API key (zie sidebar)"}
+                      </div>
+                    </div>
+                    <input type="file" accept=".pdf" style={{ display: "none" }} onChange={handlePDFChange} />
+                  </label>
+                  {pdfStatus === "geen-key" && (
+                    <div style={{ marginTop: 8, fontSize: 11.5, color: "#7A4F00", background: "#FFF8E6", border: "1px solid #E8C96A", borderRadius: 7, padding: "7px 10px" }}>
+                      Geen API key ingesteld. Gebruik de tab "Plak tekst" — dat werkt altijd zonder API key.
+                    </div>
+                  )}
+                  {pdfStatus === "laden" && (
+                    <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: G.groenMid }}>
+                      <span style={{ display: "inline-block", width: 14, height: 14, border: `2px solid ${G.groenZacht}`, borderTopColor: G.groen, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                      Claude leest je factuur uit...
+                    </div>
+                  )}
+                  {pdfStatus === "fout" && (
+                    <div style={{ marginTop: 8, fontSize: 11.5, color: "#B03030", background: "#FEF0F0", border: "1px solid #F5C0C0", borderRadius: 7, padding: "7px 10px" }}>
+                      Kon de PDF niet uitlezen. Probeer de tab "Plak tekst".
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Herkende ingrediënten (beide tabs) */}
+              {pdfIngredienten.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ fontSize: 10, color: G.tekstZacht, marginBottom: 6 }}>Herkend uit factuur ({pdfIngredienten.length}) — klik om te verwijderen:</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                    {pdfIngredienten.map(ingr => (
+                      <span key={ingr} onClick={() => verwijderPdf(ingr)} style={{ fontSize: mobile ? 14 : 11, padding: mobile ? "8px 12px" : "2px 8px", background: "#E8F4E8", color: G.groenMid, borderRadius: 20, cursor: "pointer", border: `1px solid ${G.groenZacht}`, display: "flex", alignItems: "center", gap: 4 }}>
+                        {ingr} <span style={{ fontSize: mobile ? 14 : 10, padding: mobile ? "2px 2px" : "0", opacity: 0.6, lineHeight: 1 }}>✕</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1545,12 +1615,14 @@ function PlannerPage({ planning, setPlanning, recepten, gezinData }) {
                     <option value="true">Thuis werk</option>
                     <option value="false">Op kantoor</option>
                   </select>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <input type="number" value={p.personen} min={1} max={8} onChange={e => setPlanning({ ...planning, [key]: { ...p, personen: parseInt(e.target.value) } })} style={{ width: mobile ? 64 : 50, border: `1px solid ${G.zandMid}`, background: G.zand, borderRadius: 7, padding: "8px 10px", color: G.tekst, outline: "none", textAlign: "center" }} />
-                    <span style={{ fontSize: mobile ? 14 : 11, color: G.tekstZacht }}>pers.</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <button onClick={() => setPlanning({ ...planning, [key]: { ...p, personen: Math.max(1, p.personen - 1) } })} style={{ width: mobile ? 36 : 26, height: mobile ? 36 : 26, border: `1px solid ${G.zandMid}`, background: G.zand, borderRadius: 6, cursor: "pointer", fontSize: mobile ? 18 : 14, color: G.tekstMid, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>−</button>
+                    <span style={{ minWidth: mobile ? 28 : 22, textAlign: "center", fontSize: mobile ? 15 : 12, fontWeight: 500, color: G.tekst }}>{p.personen}</span>
+                    <button onClick={() => setPlanning({ ...planning, [key]: { ...p, personen: Math.min(8, p.personen + 1) } })} style={{ width: mobile ? 36 : 26, height: mobile ? 36 : 26, border: `1px solid ${G.zandMid}`, background: G.zand, borderRadius: 6, cursor: "pointer", fontSize: mobile ? 18 : 14, color: G.tekstMid, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>+</button>
+                    <span style={{ fontSize: mobile ? 13 : 11, color: G.tekstZacht }}>pers.</span>
                   </div>
                 </div>}
-                <div onClick={() => setSelectDag({ key, label: `${dagTitel} ${formatDDMM(key)}` })} style={{ background: r ? (isTweedaags ? "#F0F9F0" : G.kaart) : G.groenPale, border: `1px ${r ? "solid" : "dashed"} ${r ? (isTweedaags ? G.groenLicht : G.zandMid) : G.groenZacht}`, borderRadius: 10, padding: mobile ? "14px 16px" : "10px 12px", cursor: "pointer", minHeight: mobile ? 80 : 70, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6 }}>
+                <div onClick={() => r ? setDetailRecept(r) : setSelectDag({ key, label: `${dagTitel} ${formatDDMM(key)}` })} style={{ background: r ? (isTweedaags ? "#F0F9F0" : G.kaart) : G.groenPale, border: `1px ${r ? "solid" : "dashed"} ${r ? (isTweedaags ? G.groenLicht : G.zandMid) : G.groenZacht}`, borderRadius: 10, padding: mobile ? "14px 16px" : "10px 12px", cursor: "pointer", minHeight: mobile ? 80 : 70, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6 }}>
                   {r ? (() => {
                     // Bereken "laatst gegeten"
                     const gd = r.gemaaktData && r.gemaaktData.length > 0 ? r.gemaaktData[0] : null;
@@ -1595,9 +1667,15 @@ function PlannerPage({ planning, setPlanning, recepten, gezinData }) {
                   })() : <div style={{ color: G.tekstZacht, fontSize: mobile ? 15 : 11.5, textAlign: "center" }}>+ Kies recept</div>}
                 </div>
                 {r && (
-                  <button onClick={(e) => { e.stopPropagation(); setPlanning({ ...planning, [key]: { ...p, recept: null } }); }} style={{ marginTop: 8, width: "100%", padding: "5px", background: "#f0f0ea", color: G.tekstMid, border: `1px solid ${G.zandMid}`, borderRadius: 7, fontSize: 11, cursor: "pointer" }}>
-                    ✕ Verwijder recept
-                  </button>
+                  <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                    <button onClick={(e) => { e.stopPropagation(); setSelectDag({ key, label: `${dagTitel} ${formatDDMM(key)}` }); }} style={{ flex: 1, padding: mobile ? "11px 8px" : "7px 8px", background: G.groenPale, color: G.groenMid, border: `1px solid ${G.groenZacht}`, borderRadius: 8, fontSize: mobile ? 13 : 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                      Wijzig
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setPlanning({ ...planning, [key]: { ...p, recept: null } }); }} style={{ flex: 1, padding: mobile ? "11px 8px" : "7px 8px", background: "#f0f0ea", color: G.tekstMid, border: `1px solid ${G.zandMid}`, borderRadius: 8, fontSize: mobile ? 13 : 11, cursor: "pointer" }}>
+                      ✕ Verwijder
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -1607,31 +1685,36 @@ function PlannerPage({ planning, setPlanning, recepten, gezinData }) {
         );
       })()}
 
-      {/* Vorige dagen — log wat je eerder gegeten hebt */}
+      {/* Vorige dagen — log of bewerk wat je eerder gegeten hebt */}
       {(() => {
-        const verldenDagen = Array.from({length:7}, (_,i) => datumOffset(-(7-i))).filter(k => !planning[k]?.recept);
-        if (verldenDagen.length === 0) return null;
+        const verldenDagen = Array.from({length:7}, (_,i) => datumOffset(-(7-i)));
+        const leegAantal = verldenDagen.filter(k => !planning[k]?.recept).length;
         return (
           <div style={{ marginTop: 18 }}>
             <button onClick={() => setVerldenOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 7, background: "none", border: "none", cursor: "pointer", padding: "8px 0", color: G.tekstMid, fontSize: mobile ? 14 : 12.5, fontWeight: 500 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: verldenOpen ? "rotate(90deg)" : "none", transition: "transform .15s" }}><polyline points="9 18 15 12 9 6"/></svg>
-              Wat heb je eerder gegeten? ({verldenDagen.length} dag{verldenDagen.length > 1 ? "en" : ""} niet ingevuld)
+              Vorige dagen
+              {leegAantal > 0 && <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 20, background: G.groenLicht, color: G.groen, fontWeight: 600 }}>{leegAantal} leeg</span>}
             </button>
             {verldenOpen && (
               <div style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, padding: mobile ? "14px 16px" : "16px 20px", marginTop: 6 }}>
-                <div style={{ fontSize: 11.5, color: G.tekstZacht, marginBottom: 12 }}>Selecteer een dag om in te vullen wat je gegeten hebt</div>
+                <div style={{ fontSize: 11.5, color: G.tekstZacht, marginBottom: 12 }}>Vul in of bewerk wat je gegeten hebt</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {verldenDagen.map(k => {
                     const rl = relatieveLabel(k);
                     const dagLabel = rl || dagNaamVol(k);
+                    const r = planning[k]?.recept;
                     return (
-                      <div key={k} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: G.zand, borderRadius: 9, border: `1px solid ${G.zandMid}` }}>
-                        <div>
-                          <span style={{ fontWeight: 500, color: G.tekst, fontSize: 13 }}>{dagLabel}</span>
-                          <span style={{ color: G.tekstZacht, fontSize: 12, marginLeft: 8 }}>{formatDDMM(k)}</span>
+                      <div key={k} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 12px", background: r ? G.groenPale : G.zand, borderRadius: 9, border: `1px solid ${r ? G.groenZacht : G.zandMid}` }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                            <span style={{ fontWeight: 500, color: G.tekst, fontSize: 13 }}>{dagLabel}</span>
+                            <span style={{ color: G.tekstZacht, fontSize: 12 }}>{formatDDMM(k)}</span>
+                          </div>
+                          {r && <div style={{ fontSize: 11.5, color: G.groenMid, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.naam}</div>}
                         </div>
-                        <button onClick={() => setSelectDag({ key: k, label: `${dagLabel} ${formatDDMM(k)}` })} style={{ padding: "8px 14px", background: G.groen, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 500 }}>
-                          Invullen
+                        <button onClick={() => setSelectDag({ key: k, label: `${dagLabel} ${formatDDMM(k)}` })} style={{ padding: "8px 14px", background: r ? G.groenMid : G.groen, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 500, flexShrink: 0 }}>
+                          {r ? "Bewerken" : "Invullen"}
                         </button>
                       </div>
                     );
@@ -1647,6 +1730,7 @@ function PlannerPage({ planning, setPlanning, recepten, gezinData }) {
         <SelectModal
           dagLabel={selectDag.label}
           recepten={recepten}
+          mobile={mobile}
           onSelect={r => {
             const bestaand = planning[selectDag.key] || { thuiswerk: false, personen: 4, recept: null };
             setPlanning({ ...planning, [selectDag.key]: { ...bestaand, recept: r } });
@@ -1654,6 +1738,26 @@ function PlannerPage({ planning, setPlanning, recepten, gezinData }) {
             setVerldenOpen(false);
           }}
           onClose={() => setSelectDag(null)}
+        />
+      )}
+
+      {detailRecept && (
+        <ReceptDetailModal
+          recept={detailRecept}
+          alleRecepten={recepten}
+          mobile={mobile}
+          onClose={() => setDetailRecept(null)}
+          onSave={(updates) => {
+            const bijgewerkt = { ...detailRecept, ...updates };
+            setRecepten(recepten.map(r => r.id === detailRecept.id ? bijgewerkt : r));
+            // Werk ook de planning bij zodat de tegel direct de nieuwe info toont
+            const nieuwePlanning = {};
+            for (const [k, v] of Object.entries(planning)) {
+              nieuwePlanning[k] = { ...v, recept: v.recept?.id === detailRecept.id ? bijgewerkt : v.recept };
+            }
+            setPlanning(nieuwePlanning);
+            setDetailRecept(null);
+          }}
         />
       )}
     </div>
@@ -1860,8 +1964,8 @@ function ToevoegenModal({ onClose, onSave, volgendId }) {
 }
 
 // ─── PAGINA: RECEPTEN ───────────────────────────────────────────────────────
-function ReceptenPage({ recepten, setRecepten }) {
-  const mobile = window.innerWidth < 768;
+function ReceptenPage({ recepten, setRecepten, isMobile = false }) {
+  const mobile = isMobile;
   const [zoek, setZoek] = useState("");
   const [filterSeizoen, setFilterSeizoen] = useState("");
   const [filterTag, setFilterTag] = useState("");
@@ -1872,7 +1976,7 @@ function ReceptenPage({ recepten, setRecepten }) {
   const filtered = recepten.filter(r => {
     if (zoek && !(r.naam + " " + r.nick).toLowerCase().includes(zoek.toLowerCase())) return false;
     if (filterSeizoen && !(Array.isArray(r.seizoen) ? r.seizoen.includes(filterSeizoen) : r.seizoen === filterSeizoen)) return false;
-    if (filterTag && !r.tags.includes(filterTag)) return false;
+    if (filterTag && !(r.tags || []).includes(filterTag)) return false;
     if (filterFavoriet && !r.favoriet) return false;
     return true;
   });
@@ -1892,7 +1996,7 @@ function ReceptenPage({ recepten, setRecepten }) {
   };
 
   // Dynamische taglijst voor filter
-  const alleTags = [...new Set(recepten.flatMap(r => r.tags))].sort();
+  const alleTags = [...new Set(recepten.flatMap(r => r.tags || []))].sort();
 
   return (
     <div style={{ padding: mobile ? 16 : 24, maxWidth: 860 }}>
@@ -1933,6 +2037,7 @@ function ReceptenPage({ recepten, setRecepten }) {
         <ReceptDetailModal
           recept={detailRecept}
           alleRecepten={recepten}
+          mobile={mobile}
           onClose={() => setDetailRecept(null)}
           onSave={updates => saveRecept(detailRecept.id, updates)}
         />
@@ -1950,8 +2055,8 @@ function ReceptenPage({ recepten, setRecepten }) {
 }
 
 // ─── PAGINA: BOODSCHAPPEN ───────────────────────────────────────────────────
-function BoodschappenPage({ planning }) {
-  const mobile = window.innerWidth < 768;
+function BoodschappenPage({ planning, isMobile = false }) {
+  const mobile = isMobile;
   // Toon aankomende dagen (vandaag + 7 vooruit) met een recept, gesorteerd op datum
   const vandaag = vandaagISO();
   const gepland = Object.entries(planning)
@@ -2128,9 +2233,31 @@ function BoodschappenPage({ planning }) {
 // ─── PAGINA: GEZIN ──────────────────────────────────────────────────────────
 // ─── PAGINA: KALENDER ───────────────────────────────────────────────────────
 function KalenderPage() {
-  const [geschiedenis, setGeschiedenis] = useState(() => loadGeschiedenis());
+  const [geschiedenis, setGeschiedenisState] = useState(() => loadGeschiedenis());
   const [weergaveJaar, setWeergaveJaar] = useState(() => new Date().getFullYear());
   const [weergaveMaand, setWeergaveMaand] = useState(() => new Date().getMonth());
+  // Bewerken van een geschiedenis-invoer
+  const [bewerkDag, setBewerkDag] = useState(null); // { iso, maaltijd }
+  const [bewerkInput, setBewerkInput] = useState("");
+
+  const opslaanBewerking = () => {
+    if (!bewerkDag || !bewerkInput.trim()) return;
+    const bijgewerkt = {
+      ...geschiedenis,
+      [bewerkDag.iso]: { ...(geschiedenis[bewerkDag.iso] || {}), maaltijd: bewerkInput.trim() }
+    };
+    saveGeschiedenis(bijgewerkt);
+    setGeschiedenisState(bijgewerkt);
+    setBewerkDag(null);
+  };
+
+  const verwijderGeschiedenisEntry = (iso) => {
+    const bijgewerkt = { ...geschiedenis };
+    delete bijgewerkt[iso];
+    saveGeschiedenis(bijgewerkt);
+    setGeschiedenisState(bijgewerkt);
+    setBewerkDag(null);
+  };
 
   const MAANDEN = ["Januari","Februari","Maart","April","Mei","Juni","Juli","Augustus","September","Oktober","November","December"];
   const DAGLETTERS = ["Ma","Di","Wo","Do","Vr","Za","Zo"];
@@ -2161,7 +2288,7 @@ function KalenderPage() {
 
   // Herlaad bij focus (in geval van wijzigingen elders)
   useEffect(() => {
-    const herlaad = () => setGeschiedenis(loadGeschiedenis());
+    const herlaad = () => setGeschiedenisState(loadGeschiedenis());
     window.addEventListener("focus", herlaad);
     return () => window.removeEventListener("focus", herlaad);
   }, []);
@@ -2206,24 +2333,20 @@ function KalenderPage() {
             const isWeekend = (i % 7) >= 5; // za/zo
 
             return (
-              <div key={dag.iso} style={{
+              <div key={dag.iso} onClick={() => {
+                setBewerkDag({ iso: dag.iso, dag: dag.dag });
+                setBewerkInput(dag.entry?.maaltijd || "");
+              }} style={{
                 minHeight: 80,
                 borderRight: `1px solid ${G.zandMid}`,
                 borderBottom: `1px solid ${G.zandMid}`,
                 padding: "6px 7px",
                 background: isVandaag ? "#F0F9F0" : isWeekend ? "#FDFAF5" : G.kaart,
-                position: "relative"
+                position: "relative",
+                cursor: "pointer",
               }}>
                 {/* Dagnummer */}
-                <div style={{
-                  fontSize: 12,
-                  fontWeight: isVandaag ? 600 : 400,
-                  color: isVandaag ? G.groen : G.tekstZacht,
-                  marginBottom: 4,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between"
-                }}>
+                <div style={{ fontSize: 12, fontWeight: isVandaag ? 600 : 400, color: isVandaag ? G.groen : G.tekstZacht, marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <span style={isVandaag ? { background: G.groen, color: "#fff", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11 } : {}}>
                     {dag.dag}
                   </span>
@@ -2233,23 +2356,13 @@ function KalenderPage() {
                 </div>
 
                 {/* Maaltijd */}
-                {heeftMaaltijd && (
-                  <div style={{
-                    fontSize: 10.5,
-                    lineHeight: 1.35,
-                    color: G.tekst,
-                    background: G.groenPale,
-                    borderRadius: 4,
-                    padding: "3px 5px",
-                    borderLeft: `2px solid ${G.groenLicht}`
-                  }}>
-                    {dag.entry.maaltijd.length > 28
-                      ? dag.entry.maaltijd.substring(0, 26) + "…"
-                      : dag.entry.maaltijd}
-                    {dag.entry.temp && (
-                      <div style={{ fontSize: 9.5, color: G.tekstZacht, marginTop: 1 }}>{dag.entry.temp}°</div>
-                    )}
+                {heeftMaaltijd ? (
+                  <div style={{ fontSize: 10.5, lineHeight: 1.35, color: G.tekst, background: G.groenPale, borderRadius: 4, padding: "3px 5px", borderLeft: `2px solid ${G.groenLicht}` }}>
+                    {dag.entry.maaltijd.length > 28 ? dag.entry.maaltijd.substring(0, 26) + "…" : dag.entry.maaltijd}
+                    {dag.entry.temp && <div style={{ fontSize: 9.5, color: G.tekstZacht, marginTop: 1 }}>{dag.entry.temp}°</div>}
                   </div>
+                ) : (
+                  <div style={{ fontSize: 10, color: "#ccc", marginTop: 4 }}>+ invullen</div>
                 )}
               </div>
             );
@@ -2279,6 +2392,48 @@ function KalenderPage() {
           </div>
         )}
       </div>
+
+      <div style={{ fontSize: 11, color: G.tekstZacht, marginTop: 10 }}>Klik op een dag om een maaltijd in te vullen of te bewerken</div>
+
+      {/* Bewerkmodal */}
+      {bewerkDag && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(30,46,30,.55)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setBewerkDag(null)}>
+          <div style={{ background: G.kaart, borderRadius: 14, width: "100%", maxWidth: 420, boxShadow: "0 8px 40px rgba(44,74,46,.2)", overflow: "hidden" }} onClick={e => e.stopPropagation()}>
+            <div style={{ background: G.groen, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontFamily: "Georgia,serif", fontSize: 17, color: "#fff" }}>
+                  {geschiedenis[bewerkDag.iso] ? "Maaltijd bewerken" : "Maaltijd invullen"}
+                </div>
+                <div style={{ fontSize: 11, color: G.groenLicht, marginTop: 2 }}>
+                  {dagNaamVol(bewerkDag.iso)} {formatDDMM(bewerkDag.iso)}
+                </div>
+              </div>
+              <button onClick={() => setBewerkDag(null)} style={{ background: "rgba(255,255,255,.15)", border: "none", color: "#fff", width: 28, height: 28, borderRadius: "50%", cursor: "pointer", fontSize: 14 }}>✕</button>
+            </div>
+            <div style={{ padding: 20 }}>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 500, color: G.groenMid, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>Wat heb je gegeten?</label>
+              <input
+                autoFocus
+                value={bewerkInput}
+                onChange={e => setBewerkInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && opslaanBewerking()}
+                placeholder="Naam van het gerecht…"
+                style={{ width: "100%", border: `1px solid ${G.zandMid}`, borderRadius: 8, padding: "10px 12px", fontSize: 14, color: G.tekst, background: G.zand, outline: "none", fontFamily: "inherit" }}
+              />
+              <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                <button onClick={opslaanBewerking} disabled={!bewerkInput.trim()} style={{ flex: 1, padding: "10px", background: bewerkInput.trim() ? G.groen : G.groenLicht, color: "#fff", border: "none", borderRadius: 8, cursor: bewerkInput.trim() ? "pointer" : "not-allowed", fontSize: 13, fontWeight: 500 }}>
+                  Opslaan
+                </button>
+                {geschiedenis[bewerkDag.iso] && (
+                  <button onClick={() => verwijderGeschiedenisEntry(bewerkDag.iso)} style={{ padding: "10px 14px", background: G.kaart, color: "#c0392b", border: `1px solid #c0392b30`, borderRadius: 8, cursor: "pointer", fontSize: 13 }}>
+                    Verwijderen
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2784,7 +2939,13 @@ function loadRecepten() {
   try {
     const raw = localStorage.getItem(LS_RECEPTEN);
     if (!raw) return null;
-    return JSON.parse(raw);
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data)) return null;
+    return data.map(r => ({
+      ...r,
+      tags: Array.isArray(r.tags) ? r.tags : [],
+      gemaaktData: Array.isArray(r.gemaaktData) ? r.gemaaktData : [],
+    }));
   } catch { return null; }
 }
 
@@ -2921,8 +3082,13 @@ function AppWithStorage() {
     refRecepten.on("value", snap => {
       const data = snap.val();
       if (data && Array.isArray(data)) {
-        setReceptenState(data);
-        try { localStorage.setItem(LS_RECEPTEN, JSON.stringify(data)); } catch {}
+        const normalized = data.map(r => ({
+          ...r,
+          tags: Array.isArray(r.tags) ? r.tags : [],
+          gemaaktData: Array.isArray(r.gemaaktData) ? r.gemaaktData : [],
+        }));
+        setReceptenState(normalized);
+        try { localStorage.setItem(LS_RECEPTEN, JSON.stringify(normalized)); } catch {}
       }
     });
     // Planning
@@ -2994,9 +3160,9 @@ function AppWithStorage() {
         {/* Pagina inhoud */}
         <main style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
           {mobilePagina === "home"        && <HomeTegels onKlik={setMobilePagina} />}
-          {mobilePagina === "planner"     && <PlannerPage planning={planning} setPlanning={setPlanning} recepten={recepten} gezinData={gezinData} />}
-          {mobilePagina === "recepten"    && <ReceptenPage recepten={recepten} setRecepten={setRecepten} />}
-          {mobilePagina === "boodschappen"&& <BoodschappenPage planning={planning} />}
+          {mobilePagina === "planner"     && <PlannerPage planning={planning} setPlanning={setPlanning} recepten={recepten} setRecepten={setRecepten} gezinData={gezinData} isMobile={isMobile} />}
+          {mobilePagina === "recepten"    && <ReceptenPage recepten={recepten} setRecepten={setRecepten} isMobile={isMobile} />}
+          {mobilePagina === "boodschappen"&& <BoodschappenPage planning={planning} isMobile={isMobile} />}
           {mobilePagina === "kalender"    && <KalenderPage />}
         </main>
 
@@ -3071,9 +3237,9 @@ function AppWithStorage() {
         </div>
       </nav>
       <main style={{ flex: 1, overflowY: "auto" }}>
-        {pagina === "planner"      && <PlannerPage planning={planning} setPlanning={setPlanning} recepten={recepten} gezinData={gezinData} />}
-        {pagina === "recepten"     && <ReceptenPage recepten={recepten} setRecepten={setRecepten} />}
-        {pagina === "boodschappen" && <BoodschappenPage planning={planning} />}
+        {pagina === "planner"      && <PlannerPage planning={planning} setPlanning={setPlanning} recepten={recepten} setRecepten={setRecepten} gezinData={gezinData} isMobile={isMobile} />}
+        {pagina === "recepten"     && <ReceptenPage recepten={recepten} setRecepten={setRecepten} isMobile={isMobile} />}
+        {pagina === "boodschappen" && <BoodschappenPage planning={planning} isMobile={isMobile} />}
         {pagina === "kalender"     && <KalenderPage />}
         {pagina === "statistieken" && <StatistiekenPage recepten={recepten} planning={planning} />}
         {pagina === "gezin"        && <GezinPage savedData={gezinData} onSave={(g) => { setGezinDataState(g); saveGezin(g); }} />}
