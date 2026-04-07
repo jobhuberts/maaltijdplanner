@@ -2909,18 +2909,23 @@ function GezinPage({ savedData, onSave }) {
 
 
 // ── localStorage helpers ──────────────────────────────────────────────────
-const LS_RECEPTEN     = "tw_recepten_v2";
-const LS_PLANNING     = "tw_planning_v2";
-const LS_GEZIN        = "tw_gezin_v2";
-const LS_APIKEY       = "tw_apikey_v1";
-const LS_GESCHIEDENIS = "tw_geschiedenis_v1";
+const LS_RECEPTEN       = "tw_recepten_v2";
+const LS_PLANNING       = "tw_planning_v2";
+const LS_GEZIN          = "tw_gezin_v2";
+const LS_APIKEY         = "tw_apikey_v1";
+const LS_GESCHIEDENIS   = "tw_geschiedenis_v1";
+const LS_HUIDIGE_FAMILIE = "tw_huidige_familie_v1";
+
+const FAMILIE_ICONEN = ["🍳","🥕","🍝","🥗","🍲","🥦","🍕","🥑","🍜","🥘","🍄","🍋","🫐","🥬","🧅","🧄","🍅","🌽","🥙","🫕","🫒","🍱","🥚","🌿"];
+
+let HUIDIGE_FAMILIE_ID = null;
 
 function loadGeschiedenis() {
   try { return JSON.parse(localStorage.getItem(LS_GESCHIEDENIS) || "{}"); } catch { return {}; }
 }
 function saveGeschiedenis(g) {
   try { localStorage.setItem(LS_GESCHIEDENIS, JSON.stringify(g)); } catch {}
-  fbDb.ref("geschiedenis").set(g).catch(() => {});
+  if (HUIDIGE_FAMILIE_ID) fbDb.ref(`families/${HUIDIGE_FAMILIE_ID}/geschiedenis`).set(g).catch(() => {});
 }
 // Sla een maaltijd op voor een specifieke datum (ISO: YYYY-MM-DD)
 function slaOpInGeschiedenis(datum, maaltijdNaam, weerIcon, weerTemp) {
@@ -2972,7 +2977,7 @@ function loadRecepten() {
 
 function saveRecepten(r) {
   try { localStorage.setItem(LS_RECEPTEN, JSON.stringify(r)); } catch {}
-  fbDb.ref("recepten").set(r).catch(() => {});
+  if (HUIDIGE_FAMILIE_ID) fbDb.ref(`families/${HUIDIGE_FAMILIE_ID}/recepten`).set(r).catch(() => {});
 }
 
 function loadPlanning() {
@@ -2985,7 +2990,7 @@ function loadPlanning() {
 
 function savePlanning(p) {
   try { localStorage.setItem(LS_PLANNING, JSON.stringify(p)); } catch {}
-  fbDb.ref("planning").set(p).catch(() => {});
+  if (HUIDIGE_FAMILIE_ID) fbDb.ref(`families/${HUIDIGE_FAMILIE_ID}/planning`).set(p).catch(() => {});
 }
 
 function loadGezin() {
@@ -2998,7 +3003,7 @@ function loadGezin() {
 
 function saveGezin(g) {
   try { localStorage.setItem(LS_GEZIN, JSON.stringify(g)); } catch {}
-  fbDb.ref("gezin").set(g).catch(() => {});
+  if (HUIDIGE_FAMILIE_ID) fbDb.ref(`families/${HUIDIGE_FAMILIE_ID}/gezin`).set(g).catch(() => {});
 }
 
 // ── Mobile: Home tegels ───────────────────────────────────────────────────
@@ -3067,8 +3072,235 @@ function MobileSheet({ titel, onSluit, children }) {
   );
 }
 
+// ── FamilieFormulier ──────────────────────────────────────────────────────
+function FamilieFormulier({ familie, onOpslaan, onAnnuleer }) {
+  const isNieuw = !familie;
+  const [naam, setNaam] = useState(familie?.naam || "");
+  const [icoon, setIconon] = useState(familie?.icoon || "🍳");
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ background: "#fff", borderRadius: 18, padding: 28, width: "100%", maxWidth: 380, boxShadow: "0 20px 60px rgba(0,0,0,.4)" }}>
+        <div style={{ fontFamily: "'Playfair Display',Georgia,serif", fontSize: 20, marginBottom: 20, color: G.tekst }}>
+          {isNieuw ? "Nieuwe familie aanmaken" : "Familie bewerken"}
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, color: G.tekstZacht, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 6 }}>Naam</label>
+          <input
+            autoFocus
+            value={naam}
+            onChange={e => setNaam(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && naam.trim() && onOpslaan({ naam: naam.trim(), icoon })}
+            placeholder="bijv. Job & Milou"
+            style={{ width: "100%", border: `1.5px solid ${G.zandMid}`, borderRadius: 8, padding: "10px 12px", fontSize: 15, color: G.tekst, outline: "none", fontFamily: "'DM Sans',sans-serif", boxSizing: "border-box" }}
+          />
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          <label style={{ fontSize: 11, color: G.tekstZacht, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 8 }}>Icoon</label>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 6 }}>
+            {FAMILIE_ICONEN.map(ic => (
+              <button key={ic} onClick={() => setIconon(ic)} style={{
+                aspectRatio: "1", border: `2px solid ${icoon === ic ? G.groen : "transparent"}`,
+                borderRadius: 8, background: icoon === ic ? "#EFF5EF" : "transparent",
+                fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                padding: 4, lineHeight: 1, minHeight: "unset"
+              }}>{ic}</button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onAnnuleer} style={{ flex: 1, padding: "11px", border: `1px solid ${G.zandMid}`, borderRadius: 9, background: "transparent", color: G.tekst, cursor: "pointer", fontSize: 14 }}>Annuleer</button>
+          <button
+            onClick={() => naam.trim() && onOpslaan({ naam: naam.trim(), icoon })}
+            style={{ flex: 2, padding: "11px", border: "none", borderRadius: 9, background: naam.trim() ? G.groen : G.zandMid, color: "#fff", cursor: naam.trim() ? "pointer" : "default", fontSize: 14, fontWeight: 500 }}
+          >Opslaan</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── FamilieKiesScherm ─────────────────────────────────────────────────────
+function FamilieKiesScherm({ onKies }) {
+  const [families, setFamilies] = useState([]);
+  const [bewerkenFamilie, setBewerkenFamilie] = useState(null);
+  const [toonNieuw, setToonNieuw] = useState(false);
+
+  useEffect(() => {
+    const ref = fbDb.ref("families");
+    ref.on("value", snap => {
+      const data = snap.val();
+      if (data && typeof data === "object") {
+        const lijst = Object.entries(data)
+          .filter(([, v]) => v && typeof v === "object")
+          .map(([id, v]) => ({ id, naam: v.naam || id, icoon: v.icoon || "🍳" }));
+        setFamilies(lijst);
+      } else {
+        setFamilies([]);
+      }
+    });
+    return () => ref.off();
+  }, []);
+
+  const maakNieuwe = ({ naam, icoon }) => {
+    const slug = naam.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const id = slug + "-" + Date.now().toString(36);
+    fbDb.ref(`families/${id}`).update({ naam, icoon }).then(() => {
+      onKies({ id, naam, icoon });
+    });
+    setToonNieuw(false);
+  };
+
+  const slaBewerking = ({ naam, icoon }) => {
+    const { id } = bewerkenFamilie;
+    fbDb.ref(`families/${id}`).update({ naam, icoon });
+    setBewerkenFamilie(null);
+  };
+
+  const kolommen = families.length === 0 ? "1fr" : families.length === 1 ? "200px" : "repeat(auto-fill, minmax(150px, 1fr))";
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      backgroundImage: "url('achtergrond.jpg')",
+      backgroundSize: "cover", backgroundPosition: "center",
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center"
+    }}>
+      {/* Dark green overlay 90% */}
+      <div style={{ position: "absolute", inset: 0, background: "rgba(26,52,28,.90)" }} />
+
+      <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 580, padding: "0 24px", maxHeight: "100dvh", overflowY: "auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 48, paddingTop: 40 }}>
+          <div style={{ fontFamily: "'Playfair Display',Georgia,serif", fontSize: 34, color: "#FAFAF7", marginBottom: 8, letterSpacing: "-.01em" }}>Tafel &amp; Week</div>
+          <div style={{ fontSize: 14, color: "rgba(255,255,255,.5)", letterSpacing: ".02em" }}>Selecteer een familie om verder te gaan</div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: kolommen, gap: 16, marginBottom: 16, justifyContent: "center" }}>
+          {families.map(fam => (
+            <div key={fam.id} style={{ position: "relative" }}>
+              <div
+                onClick={() => onKies(fam)}
+                style={{
+                  background: "rgba(255,255,255,.07)", borderRadius: 18, padding: "32px 20px 24px",
+                  cursor: "pointer", textAlign: "center", border: "1.5px solid rgba(255,255,255,.12)",
+                  WebkitTapHighlightColor: "transparent", userSelect: "none"
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,.14)"; e.currentTarget.style.borderColor = "rgba(255,255,255,.28)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,.07)"; e.currentTarget.style.borderColor = "rgba(255,255,255,.12)"; }}
+              >
+                <div style={{ fontSize: 56, marginBottom: 14, lineHeight: 1 }}>{fam.icoon}</div>
+                <div style={{ fontSize: 16, color: "#FAFAF7", fontWeight: 500 }}>{fam.naam}</div>
+              </div>
+              <button
+                onClick={e => { e.stopPropagation(); setBewerkenFamilie(fam); }}
+                title="Bewerken"
+                style={{
+                  position: "absolute", top: 8, right: 8,
+                  background: "rgba(0,0,0,.35)", border: "none", borderRadius: 7,
+                  color: "rgba(255,255,255,.55)", width: 30, height: 30,
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, minHeight: "unset"
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+            </div>
+          ))}
+
+          {/* Nieuwe familie knop */}
+          <div
+            onClick={() => setToonNieuw(true)}
+            style={{
+              background: "rgba(255,255,255,.03)", borderRadius: 18, padding: "32px 20px 24px",
+              cursor: "pointer", textAlign: "center", border: "1.5px dashed rgba(255,255,255,.2)",
+              WebkitTapHighlightColor: "transparent"
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,.08)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,.03)"; }}
+          >
+            <div style={{ fontSize: 44, marginBottom: 14, lineHeight: 1, color: "rgba(255,255,255,.3)" }}>＋</div>
+            <div style={{ fontSize: 14, color: "rgba(255,255,255,.35)" }}>Nieuwe familie</div>
+          </div>
+        </div>
+        <div style={{ height: 40 }} />
+      </div>
+
+      {toonNieuw && <FamilieFormulier onOpslaan={maakNieuwe} onAnnuleer={() => setToonNieuw(false)} />}
+      {bewerkenFamilie && <FamilieFormulier familie={bewerkenFamilie} onOpslaan={slaBewerking} onAnnuleer={() => setBewerkenFamilie(null)} />}
+    </div>
+  );
+}
+
+// ── BeheerScherm (toegankelijk via ?beheer in URL) ────────────────────────
+function BeheerScherm() {
+  const [families, setFamilies] = useState([]);
+
+  useEffect(() => {
+    const ref = fbDb.ref("families");
+    ref.on("value", snap => {
+      const data = snap.val();
+      if (data && typeof data === "object") {
+        setFamilies(Object.entries(data)
+          .filter(([, v]) => v && typeof v === "object")
+          .map(([id, v]) => ({ id, naam: v.naam || id, icoon: v.icoon || "🍳" })));
+      } else {
+        setFamilies([]);
+      }
+    });
+    return () => ref.off();
+  }, []);
+
+  const verwijder = (id, naam) => {
+    if (!confirm(`Familie "${naam}" verwijderen? Alle recepten, planning en data worden permanent gewist.`)) return;
+    fbDb.ref(`families/${id}`).remove();
+  };
+
+  return (
+    <div style={{ padding: "32px 24px", fontFamily: "'DM Sans',sans-serif", maxWidth: 640, margin: "0 auto" }}>
+      <div style={{ fontFamily: "'Playfair Display',Georgia,serif", fontSize: 26, marginBottom: 6, color: G.tekst }}>Beheer</div>
+      <div style={{ fontSize: 13, color: G.tekstZacht, marginBottom: 28 }}>Overzicht van alle families in Firebase. Toegankelijk via <code>?beheer</code> in de URL.</div>
+      {families.length === 0 && <div style={{ color: G.tekstZacht, padding: "20px 0" }}>Geen families gevonden.</div>}
+      {families.map(fam => (
+        <div key={fam.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", background: G.kaart, borderRadius: 12, marginBottom: 10, border: `1px solid ${G.zandMid}` }}>
+          <span style={{ fontSize: 32 }}>{fam.icoon}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 500, color: G.tekst, fontSize: 15 }}>{fam.naam}</div>
+            <div style={{ fontSize: 11, color: G.tekstZacht, fontFamily: "monospace", marginTop: 2 }}>{fam.id}</div>
+          </div>
+          <button onClick={() => verwijder(fam.id, fam.naam)} style={{ padding: "7px 14px", background: "#e74c3c", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Verwijder</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Root app met localStorage ─────────────────────────────────────────────
 function AppWithStorage() {
+  const isBeheer = window.location.search.includes("beheer");
+
+  // ── Familie state ──────────────────────────────────────────────────────
+  const [familie, setFamilieState] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(LS_HUIDIGE_FAMILIE) || "null"); } catch { return null; }
+  });
+
+  const kiesFamilie = (fam) => {
+    HUIDIGE_FAMILIE_ID = fam.id;
+    setFamilieState(fam);
+    try { localStorage.setItem(LS_HUIDIGE_FAMILIE, JSON.stringify(fam)); } catch {}
+  };
+
+  const wisselFamilie = () => {
+    HUIDIGE_FAMILIE_ID = null;
+    setFamilieState(null);
+    try { localStorage.removeItem(LS_HUIDIGE_FAMILIE); } catch {}
+  };
+
+  // ── App state ──────────────────────────────────────────────────────────
   const [pagina, setPagina] = useState("planner");
   const [apiKey, setApiKeyState] = useState(() => loadApiKey());
   const [toonApiKey, setToonApiKey] = useState(() => !loadApiKey());
@@ -3089,6 +3321,11 @@ function AppWithStorage() {
   const [mobilePagina, setMobilePagina] = useState("home");
   const [mobileOverlay, setMobileOverlay] = useState(null);
 
+  // ── Sync HUIDIGE_FAMILIE_ID global wanneer familie verandert ───────────
+  useEffect(() => {
+    if (familie?.id) HUIDIGE_FAMILIE_ID = familie.id;
+  }, [familie?.id]);
+
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
     const handler = (e) => setIsMobile(e.matches);
@@ -3096,10 +3333,35 @@ function AppWithStorage() {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // ── Firebase realtime sync ──────────────────────────────────────────────
+  // ── Eenmalige migratie: oude vlakke data → families/job-milou ──────────
   useEffect(() => {
-    // Recepten
-    const refRecepten = fbDb.ref("recepten");
+    fbDb.ref("families/job-milou/naam").once("value", snap => {
+      if (snap.val()) return; // Al gemigreerd
+      Promise.all([
+        fbDb.ref("recepten").once("value"),
+        fbDb.ref("planning").once("value"),
+        fbDb.ref("gezin").once("value"),
+        fbDb.ref("geschiedenis").once("value"),
+      ]).then(([rSnap, pSnap, gSnap, hSnap]) => {
+        const updates = {
+          "families/job-milou/naam": "Job & Milou",
+          "families/job-milou/icoon": "🍳",
+        };
+        if (rSnap.val()) updates["families/job-milou/recepten"] = rSnap.val();
+        if (pSnap.val()) updates["families/job-milou/planning"] = pSnap.val();
+        if (gSnap.val()) updates["families/job-milou/gezin"] = gSnap.val();
+        if (hSnap.val()) updates["families/job-milou/geschiedenis"] = hSnap.val();
+        return fbDb.ref().update(updates);
+      }).catch(() => {});
+    });
+  }, []);
+
+  // ── Firebase realtime sync (per actieve familie) ───────────────────────
+  useEffect(() => {
+    if (!familie?.id) return;
+    const famId = familie.id;
+
+    const refRecepten = fbDb.ref(`families/${famId}/recepten`);
     refRecepten.on("value", snap => {
       const data = snap.val();
       if (data && Array.isArray(data)) {
@@ -3112,8 +3374,8 @@ function AppWithStorage() {
         try { localStorage.setItem(LS_RECEPTEN, JSON.stringify(normalized)); } catch {}
       }
     });
-    // Planning
-    const refPlanning = fbDb.ref("planning");
+
+    const refPlanning = fbDb.ref(`families/${famId}/planning`);
     refPlanning.on("value", snap => {
       const data = snap.val();
       if (data && typeof data === "object") {
@@ -3128,8 +3390,8 @@ function AppWithStorage() {
         try { localStorage.setItem(LS_PLANNING, JSON.stringify(result)); } catch {}
       }
     });
-    // Gezin
-    const refGezin = fbDb.ref("gezin");
+
+    const refGezin = fbDb.ref(`families/${famId}/gezin`);
     refGezin.on("value", snap => {
       const data = snap.val();
       if (data) {
@@ -3137,15 +3399,22 @@ function AppWithStorage() {
         try { localStorage.setItem(LS_GEZIN, JSON.stringify(data)); } catch {}
       }
     });
+
     return () => {
       refRecepten.off();
       refPlanning.off();
       refGezin.off();
     };
-  }, []);
+  }, [familie?.id]);
 
   const setRecepten = (r) => { setReceptenState(r); saveRecepten(r); };
   const setPlanning = (p) => { setPlanningState(p); savePlanning(p); };
+
+  // ── Beheer modus (?beheer in URL) ──────────────────────────────────────
+  if (isBeheer) return <BeheerScherm />;
+
+  // ── Geen familie geselecteerd → kiesscherm ─────────────────────────────
+  if (!familie) return <FamilieKiesScherm onKies={kiesFamilie} />;
 
   const paginaTitels = { planner: "Weekplanning", recepten: "Recepten", boodschappen: "Boodschappen", kalender: "Geschiedenis" };
 
@@ -3163,7 +3432,10 @@ function AppWithStorage() {
               {paginaTitels[mobilePagina]}
             </button>
           ) : (
-            <div style={{ fontFamily: "'Playfair Display',Georgia,serif", fontSize: 17, color: "#FAFAF7" }}>Tafel &amp; Week</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 20, lineHeight: 1 }}>{familie.icoon}</span>
+              <div style={{ fontFamily: "'Playfair Display',Georgia,serif", fontSize: 17, color: "#FAFAF7" }}>{familie.naam}</div>
+            </div>
           )}
           <div style={{ display: "flex" }}>
             <button onClick={() => setMobileOverlay("statistieken")} style={btnStijl} title="Statistieken">
@@ -3213,6 +3485,18 @@ function AppWithStorage() {
                 Nodig voor PDF uitlezen van AH-facturen. Wordt lokaal opgeslagen in je browser.
               </div>
               {apiKey && <div style={{ marginTop: 10, fontSize: 13, color: G.groen, fontWeight: 500 }}>✓ API key ingesteld</div>}
+              {/* Wissel familie */}
+              <div style={{ marginTop: 28, paddingTop: 20, borderTop: `1px solid ${G.zandMid}` }}>
+                <div style={{ fontSize: 12, color: G.tekstZacht, marginBottom: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".05em" }}>Familie</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                  <span style={{ fontSize: 30 }}>{familie.icoon}</span>
+                  <span style={{ fontSize: 16, fontWeight: 500, color: G.tekst }}>{familie.naam}</span>
+                </div>
+                <button
+                  onClick={() => { setMobileOverlay(null); wisselFamilie(); }}
+                  style={{ width: "100%", padding: "12px", border: `1px solid ${G.zandMid}`, borderRadius: 9, background: "transparent", color: G.tekst, cursor: "pointer", fontSize: 14 }}
+                >↩ Wissel van familie</button>
+              </div>
             </div>
           </MobileSheet>
         )}
@@ -3234,8 +3518,11 @@ function AppWithStorage() {
     <div style={{ display: "flex", height: "100vh", fontFamily: "'DM Sans',sans-serif", fontSize: 14, color: G.tekst, background: G.zand, overflow: "hidden" }}>
       <nav style={{ width: 200, background: G.groen, padding: "22px 0", display: "flex", flexDirection: "column", flexShrink: 0, height: "100vh" }}>
         <div style={{ padding: "0 20px 20px", borderBottom: "1px solid rgba(255,255,255,.1)", marginBottom: 14 }}>
-          <div style={{ fontFamily: "Georgia,serif", fontSize: 17, color: "#FAFAF7", lineHeight: 1.3 }}>Tafel &amp; Week</div>
-          <div style={{ fontSize: 10, color: G.groenLicht, marginTop: 3, letterSpacing: ".06em", textTransform: "uppercase" }}>Maaltijdplanner</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+            <span style={{ fontSize: 20, lineHeight: 1 }}>{familie.icoon}</span>
+            <div style={{ fontFamily: "Georgia,serif", fontSize: 16, color: "#FAFAF7", lineHeight: 1.3 }}>{familie.naam}</div>
+          </div>
+          <div style={{ fontSize: 10, color: G.groenLicht, marginTop: 2, letterSpacing: ".06em", textTransform: "uppercase" }}>Maaltijdplanner</div>
         </div>
         {nav.map(n => (
           <div key={n.key} onClick={() => setPagina(n.key)} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 20px", color: pagina === n.key ? "#fff" : "rgba(255,255,255,.6)", cursor: "pointer", borderLeft: `3px solid ${pagina === n.key ? G.zandMid : "transparent"}`, background: pagina === n.key ? "rgba(255,255,255,.1)" : "transparent", fontSize: 13 }}>
@@ -3243,6 +3530,13 @@ function AppWithStorage() {
           </div>
         ))}
         <div style={{ padding: "12px 16px", marginTop: "auto", borderTop: "1px solid rgba(255,255,255,.1)" }}>
+          {/* Wissel familie */}
+          <div style={{ marginBottom: 12, paddingBottom: 12, borderBottom: "1px solid rgba(255,255,255,.08)" }}>
+            <div onClick={wisselFamilie} style={{ fontSize: 11, color: G.groenLicht, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+              <span>↩</span><span style={{ textDecoration: "underline" }}>Wissel familie</span>
+            </div>
+          </div>
+          {/* API key */}
           {toonApiKey ? (
             <div>
               <div style={{ fontSize: 10, color: G.groenLicht, marginBottom: 5, letterSpacing: ".04em" }}>Anthropic API key</div>
