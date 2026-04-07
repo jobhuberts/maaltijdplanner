@@ -371,9 +371,10 @@ function SelectModal({ dagLabel, onSelect, onClose, recepten: receptenLijst, mob
     return (
       <div style={{ position: "fixed", inset: 0, background: "rgba(30,46,30,.5)", zIndex: 200 }} onClick={onClose}>
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: G.kaart, borderRadius: "20px 20px 0 0", maxHeight: "90dvh", display: "flex", flexDirection: "column", boxShadow: "0 -4px 30px rgba(44,74,46,.2)" }} onClick={e => e.stopPropagation()}>
-          {/* Drag handle */}
-          <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: G.zandMid }} />
+          {/* Drag handle / sluiten */}
+          <div onClick={onClose} style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 0 4px", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: G.zandMid, marginBottom: 6 }} />
+            <div style={{ fontSize: 12, color: G.tekstZacht, letterSpacing: ".02em" }}>Sluiten</div>
           </div>
           {/* Header */}
           <div style={{ padding: "8px 20px 14px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -473,7 +474,12 @@ function ReceptDetailModal({ recept, alleRecepten, onClose, onSave, mobile = fal
   return (
     <div style={outerStyle} onClick={mobile ? onClose : undefined}>
       <div style={innerStyle} onClick={mobile ? e => e.stopPropagation() : undefined}>
-        {mobile && <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}><div style={{ width: 40, height: 4, borderRadius: 2, background: G.zandMid }} /></div>}
+        {mobile && (
+          <div onClick={onClose} style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 0 6px", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: G.zandMid, marginBottom: 6 }} />
+            <div style={{ fontSize: 12, color: G.tekstZacht, letterSpacing: ".02em" }}>Sluiten</div>
+          </div>
+        )}
         {/* Header */}
         <div style={{ background: G.groen, padding: "18px 20px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderRadius: "12px 12px 0 0" }}>
           <div>
