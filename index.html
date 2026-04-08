@@ -2259,29 +2259,31 @@ function BoodschappenPage({ planning, isMobile = false }) {
 
 // ─── PAGINA: GEZIN ──────────────────────────────────────────────────────────
 // ─── PAGINA: KALENDER ───────────────────────────────────────────────────────
-function KalenderPage() {
-  const [geschiedenis, setGeschiedenisState] = useState(() => loadGeschiedenis());
+function KalenderPage({ geschiedenis, setGeschiedenis }) {
+  const [geschiedenisState, setGeschiedenisState] = useState(geschiedenis || loadGeschiedenis());
   const [weergaveJaar, setWeergaveJaar] = useState(() => new Date().getFullYear());
   const [weergaveMaand, setWeergaveMaand] = useState(() => new Date().getMonth());
   // Bewerken van een geschiedenis-invoer
   const [bewerkDag, setBewerkDag] = useState(null); // { iso, maaltijd }
   const [bewerkInput, setBewerkInput] = useState("");
 
+  const g = geschiedenisState;
+
   const opslaanBewerking = () => {
     if (!bewerkDag || !bewerkInput.trim()) return;
     const bijgewerkt = {
-      ...geschiedenis,
-      [bewerkDag.iso]: { ...(geschiedenis[bewerkDag.iso] || {}), maaltijd: bewerkInput.trim() }
+      ...g,
+      [bewerkDag.iso]: { ...(g[bewerkDag.iso] || {}), maaltijd: bewerkInput.trim() }
     };
-    saveGeschiedenis(bijgewerkt);
+    if (setGeschiedenis) setGeschiedenis(bijgewerkt); else saveGeschiedenis(bijgewerkt);
     setGeschiedenisState(bijgewerkt);
     setBewerkDag(null);
   };
 
   const verwijderGeschiedenisEntry = (iso) => {
-    const bijgewerkt = { ...geschiedenis };
+    const bijgewerkt = { ...g };
     delete bijgewerkt[iso];
-    saveGeschiedenis(bijgewerkt);
+    if (setGeschiedenis) setGeschiedenis(bijgewerkt); else saveGeschiedenis(bijgewerkt);
     setGeschiedenisState(bijgewerkt);
     setBewerkDag(null);
   };
@@ -2310,15 +2312,9 @@ function KalenderPage() {
   for (let i = 0; i < startOffset; i++) dagen.push(null); // lege cellen
   for (let d = 1; d <= aantalDagen; d++) {
     const iso = `${weergaveJaar}-${String(weergaveMaand+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-    dagen.push({ dag: d, iso, entry: geschiedenis[iso] || null });
+    dagen.push({ dag: d, iso, entry: g[iso] || null });
   }
 
-  // Herlaad bij focus (in geval van wijzigingen elders)
-  useEffect(() => {
-    const herlaad = () => setGeschiedenisState(loadGeschiedenis());
-    window.addEventListener("focus", herlaad);
-    return () => window.removeEventListener("focus", herlaad);
-  }, []);
 
   return (
     <div style={{ padding: 24, maxWidth: 820 }}>
@@ -2429,7 +2425,7 @@ function KalenderPage() {
             <div style={{ background: G.groen, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <div style={{ fontFamily: "Georgia,serif", fontSize: 17, color: "#fff" }}>
-                  {geschiedenis[bewerkDag.iso] ? "Maaltijd bewerken" : "Maaltijd invullen"}
+                  {g[bewerkDag.iso] ? "Maaltijd bewerken" : "Maaltijd invullen"}
                 </div>
                 <div style={{ fontSize: 11, color: G.groenLicht, marginTop: 2 }}>
                   {dagNaamVol(bewerkDag.iso)} {formatDDMM(bewerkDag.iso)}
@@ -2451,7 +2447,7 @@ function KalenderPage() {
                 <button onClick={opslaanBewerking} disabled={!bewerkInput.trim()} style={{ flex: 1, padding: "10px", background: bewerkInput.trim() ? G.groen : G.groenLicht, color: "#fff", border: "none", borderRadius: 8, cursor: bewerkInput.trim() ? "pointer" : "not-allowed", fontSize: 13, fontWeight: 500 }}>
                   Opslaan
                 </button>
-                {geschiedenis[bewerkDag.iso] && (
+                {g[bewerkDag.iso] && (
                   <button onClick={() => verwijderGeschiedenisEntry(bewerkDag.iso)} style={{ padding: "10px 14px", background: G.kaart, color: "#c0392b", border: `1px solid #c0392b30`, borderRadius: 8, cursor: "pointer", fontSize: 13 }}>
                     Verwijderen
                   </button>
@@ -2467,8 +2463,8 @@ function KalenderPage() {
 
 
 // ─── PAGINA: STATISTIEKEN ────────────────────────────────────────────────────
-function StatistiekenPage({ recepten, planning }) {
-  const geschiedenis = loadGeschiedenis();
+function StatistiekenPage({ recepten, planning, geschiedenis: geschiedenisProps }) {
+  const geschiedenis = geschiedenisProps || loadGeschiedenis();
   const entries = Object.entries(geschiedenis); // [[datum, {maaltijd, weer, temp}], ...]
 
   // ── Voedingswaarden schatting per gerechtstype ──────────────────────────
@@ -3323,6 +3319,7 @@ function AppWithStorage() {
     return result;
   });
   const [gezinData, setGezinDataState] = useState(() => loadGezin() || null);
+  const [geschiedenis, setGeschiedenisState] = useState(() => loadGeschiedenis());
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [mobilePagina, setMobilePagina] = useState("home");
   const [mobileOverlay, setMobileOverlay] = useState(null);
@@ -3406,15 +3403,26 @@ function AppWithStorage() {
       }
     });
 
+    const refGeschiedenis = fbDb.ref(`families/${famId}/geschiedenis`);
+    refGeschiedenis.on("value", snap => {
+      const data = snap.val();
+      if (data && typeof data === "object") {
+        setGeschiedenisState(data);
+        try { localStorage.setItem(LS_GESCHIEDENIS, JSON.stringify(data)); } catch {}
+      }
+    });
+
     return () => {
       refRecepten.off();
       refPlanning.off();
       refGezin.off();
+      refGeschiedenis.off();
     };
   }, [familie?.id]);
 
   const setRecepten = (r) => { setReceptenState(r); saveRecepten(r); };
   const setPlanning = (p) => { setPlanningState(p); savePlanning(p); };
+  const setGeschiedenis = (g) => { setGeschiedenisState(g); saveGeschiedenis(g); };
 
   // ── Beheer modus (?beheer in URL) ──────────────────────────────────────
   if (isBeheer) return <BeheerScherm />;
@@ -3462,7 +3470,7 @@ function AppWithStorage() {
           {mobilePagina === "planner"     && <PlannerPage planning={planning} setPlanning={setPlanning} recepten={recepten} setRecepten={setRecepten} gezinData={gezinData} isMobile={isMobile} />}
           {mobilePagina === "recepten"    && <ReceptenPage recepten={recepten} setRecepten={setRecepten} isMobile={isMobile} />}
           {mobilePagina === "boodschappen"&& <BoodschappenPage planning={planning} isMobile={isMobile} />}
-          {mobilePagina === "kalender"    && <KalenderPage />}
+          {mobilePagina === "kalender"    && <KalenderPage geschiedenis={geschiedenis} setGeschiedenis={setGeschiedenis} />}
         </main>
 
         {/* Overlays */}
@@ -3473,7 +3481,7 @@ function AppWithStorage() {
         )}
         {mobileOverlay === "statistieken" && (
           <MobileSheet titel="Statistieken" onSluit={() => setMobileOverlay(null)}>
-            <StatistiekenPage recepten={recepten} planning={planning} />
+            <StatistiekenPage recepten={recepten} planning={planning} geschiedenis={geschiedenis} />
           </MobileSheet>
         )}
         {mobileOverlay === "instellingen" && (
@@ -3561,8 +3569,8 @@ function AppWithStorage() {
         {pagina === "planner"      && <PlannerPage planning={planning} setPlanning={setPlanning} recepten={recepten} setRecepten={setRecepten} gezinData={gezinData} isMobile={isMobile} />}
         {pagina === "recepten"     && <ReceptenPage recepten={recepten} setRecepten={setRecepten} isMobile={isMobile} />}
         {pagina === "boodschappen" && <BoodschappenPage planning={planning} isMobile={isMobile} />}
-        {pagina === "kalender"     && <KalenderPage />}
-        {pagina === "statistieken" && <StatistiekenPage recepten={recepten} planning={planning} />}
+        {pagina === "kalender"     && <KalenderPage geschiedenis={geschiedenis} setGeschiedenis={setGeschiedenis} />}
+        {pagina === "statistieken" && <StatistiekenPage recepten={recepten} planning={planning} geschiedenis={geschiedenis} />}
         {pagina === "gezin"        && <GezinPage savedData={gezinData} onSave={(g) => { setGezinDataState(g); saveGezin(g); }} />}
       </main>
     </div>
