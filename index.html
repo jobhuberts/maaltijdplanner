@@ -1105,6 +1105,81 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
     setAiResultaat(uitlegRegels.join("\n"));
   };
 
+  // ── Herplan één dag: kies een ander recept dan het huidige ──────────────
+  const herplanDag = (key) => {
+    const huidigId = planning[key]?.recept?.id;
+    const maand = new Date().getMonth();
+    const huidigSeizoen = maand <= 1 || maand === 11 ? "winter" : maand <= 4 ? "lente" : maand <= 7 ? "zomer" : "herfst";
+    const nu = Date.now();
+    const TWEE_WEKEN = 14 * 24 * 60 * 60 * 1000;
+
+    // IDs die al in de huidige weekplanning gebruikt worden (behalve de dag zelf)
+    const gebruikteIdsElders = new Set(
+      Object.entries(planning)
+        .filter(([k, v]) => k !== key && v.recept)
+        .map(([, v]) => v.recept.id)
+    );
+
+    function recentGemaakt(r) {
+      if (!r.gemaaktData || r.gemaaktData.length === 0) return false;
+      return (nu - new Date(r.gemaaktData[0]).getTime()) < TWEE_WEKEN;
+    }
+
+    const CATS = {
+      pasta:    ["spaghetti","pasta","orzo","tagliatelle","linguine","macaroni","orecchiette","tortellini","lasagne"],
+      stamppot: ["stamppot"], stoof: ["stoof","stoofpot"], traybake: ["traybake","plaattaart","ovenschotel"],
+      wrap:     ["wrap","enchilada"], rijst: ["nasi","rijst","risotto"], soep: ["soep"],
+      noedels:  ["noedels","noodles"], quiche: ["quiche","taart"], salade: ["salade"], curry: ["curry","tikka","butter"],
+    };
+    function getCat(naam) {
+      const n = naam.toLowerCase();
+      for (const [cat, ws] of Object.entries(CATS)) { if (ws.some(w => n.includes(w))) return cat; }
+      return "overig";
+    }
+
+    // Huidige categorieën elders in de week (voor variatie-straf)
+    const andereCats = Object.entries(planning)
+      .filter(([k, v]) => k !== key && v.recept)
+      .map(([, v]) => getCat(v.recept.naam));
+
+    function score(r) {
+      let s = 0;
+      if (r.rating === 5) s += 8;
+      else if (r.rating === 4) s += 5;
+      else if (r.rating === 3) s += 1;
+      else if (r.rating <= 2 && r.rating > 0) s -= 2;
+      else s += 2;
+      const inSeizoen = Array.isArray(r.seizoen) ? r.seizoen.includes(huidigSeizoen) : r.seizoen === huidigSeizoen;
+      if (inSeizoen) s += 3;
+      if (andereCats.includes(getCat(r.naam))) s -= 5;
+      if (gebruikteIdsElders.has(r.id)) s -= 8;
+      s += Math.random() * 1.5; // meer willekeur voor refresh
+      return s;
+    }
+
+    // Kandidaten: alles behalve het huidige recept en BBQ/Kerst
+    const kandidaten = recepten.filter(r =>
+      r.id !== huidigId &&
+      !r.tags.includes("BBQ") &&
+      !r.tags.includes("Kerst")
+    );
+
+    // Probeer eerst zonder recent gemaakte recepten
+    const vers = kandidaten.filter(r => !recentGemaakt(r));
+    const pool = vers.length >= 3 ? vers : kandidaten;
+
+    const gesorteerd = [...pool].sort((a, b) => score(b) - score(a));
+    const keuze = gesorteerd[0];
+    if (!keuze) return;
+
+    const bijgewerkt = { ...planning, [key]: { ...(planning[key] || { thuiswerk: false, personen: 4 }), recept: keuze } };
+    setPlanning(bijgewerkt);
+
+    // Sla ook op in geschiedenis
+    const weerDag = weer.find(w => weerDagKort(key) === w.naam);
+    slaOpInGeschiedenis(key, keuze.naam, weerDag?.icon || null, weerDag?.temp || null);
+  };
+
   const deelWeekAlsPDF = () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -1698,6 +1773,9 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
                         Wijzig
                       </button>
+                      <button onClick={(e) => { e.stopPropagation(); herplanDag(key); }} title="Ander recept" style={{ padding: mobile ? "11px 10px" : "7px 10px", background: G.groenPale, color: G.groenMid, border: `1px solid ${G.groenZacht}`, borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+                      </button>
                       <button onClick={(e) => { e.stopPropagation(); setPlanning({ ...planning, [key]: { ...p, recept: null } }); }} style={{ flex: 1, padding: mobile ? "11px 8px" : "7px 8px", background: "#f0f0ea", color: G.tekstMid, border: `1px solid ${G.zandMid}`, borderRadius: 8, fontSize: mobile ? 13 : 11, cursor: "pointer" }}>
                         ✕ Verwijder
                       </button>
@@ -2259,7 +2337,7 @@ function BoodschappenPage({ planning, isMobile = false }) {
 
 // ─── PAGINA: GEZIN ──────────────────────────────────────────────────────────
 // ─── PAGINA: KALENDER ───────────────────────────────────────────────────────
-function KalenderPage({ geschiedenis, setGeschiedenis }) {
+function KalenderPage({ geschiedenis, setGeschiedenis, isMobile = false }) {
   const [geschiedenisState, setGeschiedenisState] = useState(geschiedenis || loadGeschiedenis());
   const [weergaveJaar, setWeergaveJaar] = useState(() => new Date().getFullYear());
   const [weergaveMaand, setWeergaveMaand] = useState(() => new Date().getMonth());
@@ -2316,69 +2394,110 @@ function KalenderPage({ geschiedenis, setGeschiedenis }) {
   }
 
 
+  // ── Maandnavigatie header (gedeeld tussen raster en lijst) ───────────────
+  const NavHeader = () => (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: isMobile ? 16 : 18 }}>
+      <button onClick={vorigeM} style={{ width: 36, height: 36, borderRadius: "50%", border: `1px solid ${G.zandMid}`, background: G.kaart, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: G.tekstMid, flexShrink: 0 }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div style={{ fontFamily: "Georgia,serif", fontSize: isMobile ? 17 : 18, color: G.groen, flex: 1, textAlign: "center" }}>
+        {MAANDEN[weergaveMaand]} {weergaveJaar}
+      </div>
+      <button onClick={volgendeM} style={{ width: 36, height: 36, borderRadius: "50%", border: `1px solid ${G.zandMid}`, background: G.kaart, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: G.tekstMid, flexShrink: 0 }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <button onClick={() => { setWeergaveMaand(new Date().getMonth()); setWeergaveJaar(new Date().getFullYear()); }} style={{ padding: "6px 12px", border: `1px solid ${G.zandMid}`, borderRadius: 7, background: G.kaart, fontSize: 12, color: G.tekstMid, cursor: "pointer", flexShrink: 0 }}>
+        Vandaag
+      </button>
+    </div>
+  );
+
+  // ── Mobile: lijstweergave ─────────────────────────────────────────────
+  if (isMobile) {
+    const dagenMetInhoud = dagen.filter(d => d !== null);
+    const DAGNAAMMOBIEL = ["zo","ma","di","wo","do","vr","za"];
+    return (
+      <div style={{ padding: "20px 16px 40px" }}>
+        <div style={{ fontFamily: "Georgia,serif", fontSize: 22, color: G.groen, marginBottom: 2 }}>Maaltijdgeschiedenis</div>
+        <div style={{ fontSize: 12, color: G.tekstMid, marginBottom: 18 }}>{Object.keys(g).length} maaltijden opgeslagen</div>
+
+        <NavHeader />
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {dagenMetInhoud.map(dag => {
+            const isVandaag = dag.iso === vandaag;
+            const heeftMaaltijd = !!dag.entry;
+            const datumObj = new Date(dag.iso + "T12:00:00");
+            const dagnaam = DAGNAAMMOBIEL[datumObj.getDay()];
+            return (
+              <div key={dag.iso} onClick={() => { setBewerkDag({ iso: dag.iso, dag: dag.dag }); setBewerkInput(dag.entry?.maaltijd || ""); }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "12px 14px", borderRadius: 12,
+                  background: isVandaag ? "#EFF9EF" : G.kaart,
+                  border: `1px solid ${isVandaag ? G.groenZacht : G.zandMid}`,
+                  cursor: "pointer"
+                }}>
+                {/* Datum blok */}
+                <div style={{ textAlign: "center", minWidth: 36, flexShrink: 0 }}>
+                  <div style={{ fontSize: 10, color: G.tekstZacht, textTransform: "uppercase", letterSpacing: ".04em" }}>{dagnaam}</div>
+                  <div style={isVandaag
+                    ? { width: 30, height: 30, borderRadius: "50%", background: G.groen, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 600, margin: "2px auto 0" }
+                    : { fontSize: 18, fontWeight: 500, color: G.tekst, marginTop: 2, textAlign: "center" }
+                  }>{dag.dag}</div>
+                </div>
+                {/* Inhoud */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {heeftMaaltijd ? (
+                    <>
+                      <div style={{ fontSize: 14, color: G.tekst, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dag.entry.maaltijd}</div>
+                      {dag.entry.temp && <div style={{ fontSize: 11, color: G.tekstZacht, marginTop: 2 }}>{dag.entry.weer} {dag.entry.temp}°</div>}
+                    </>
+                  ) : (
+                    <div style={{ fontSize: 13, color: "#bbb" }}>+ maaltijd invullen</div>
+                  )}
+                </div>
+                {heeftMaaltijd && (
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: G.groenMid, flexShrink: 0 }} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Desktop: rasterweergave ───────────────────────────────────────────
   return (
     <div style={{ padding: 24, maxWidth: 820 }}>
       <div style={{ fontFamily: "Georgia,serif", fontSize: 24, color: G.groen, marginBottom: 4 }}>Maaltijdgeschiedenis</div>
       <div style={{ fontSize: 12.5, color: G.tekstMid, marginBottom: 20 }}>Overzicht van alle geplande en ingevoerde maaltijden</div>
 
-      {/* Navigatie */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-        <button onClick={vorigeM} style={{ width: 32, height: 32, borderRadius: "50%", border: `1px solid ${G.zandMid}`, background: G.kaart, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: G.tekstMid }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
-        <div style={{ fontFamily: "Georgia,serif", fontSize: 18, color: G.groen, minWidth: 180, textAlign: "center" }}>
-          {MAANDEN[weergaveMaand]} {weergaveJaar}
-        </div>
-        <button onClick={volgendeM} style={{ width: 32, height: 32, borderRadius: "50%", border: `1px solid ${G.zandMid}`, background: G.kaart, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: G.tekstMid }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-        <button onClick={() => { setWeergaveMaand(new Date().getMonth()); setWeergaveJaar(new Date().getFullYear()); }} style={{ marginLeft: "auto", padding: "5px 12px", border: `1px solid ${G.zandMid}`, borderRadius: 7, background: G.kaart, fontSize: 12, color: G.tekstMid, cursor: "pointer" }}>
-          Vandaag
-        </button>
-      </div>
+      <NavHeader />
 
-      {/* Kalender */}
+      {/* Kalender raster */}
       <div style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, overflow: "hidden" }}>
-        {/* Dagletters header */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", background: G.groenPale, borderBottom: `1px solid ${G.groenZacht}` }}>
           {DAGLETTERS.map(l => (
             <div key={l} style={{ padding: "8px 4px", textAlign: "center", fontSize: 11, fontWeight: 500, color: G.groenMid, letterSpacing: ".04em" }}>{l}</div>
           ))}
         </div>
-
-        {/* Dagen grid */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
           {dagen.map((dag, i) => {
             if (!dag) return <div key={`leeg-${i}`} style={{ minHeight: 80, borderRight: `1px solid ${G.zandMid}`, borderBottom: `1px solid ${G.zandMid}`, background: "#FAFAF7" }} />;
-
             const isVandaag = dag.iso === vandaag;
             const heeftMaaltijd = !!dag.entry;
-            const isWeekend = (i % 7) >= 5; // za/zo
-
+            const isWeekend = (i % 7) >= 5;
             return (
-              <div key={dag.iso} onClick={() => {
-                setBewerkDag({ iso: dag.iso, dag: dag.dag });
-                setBewerkInput(dag.entry?.maaltijd || "");
-              }} style={{
-                minHeight: 80,
-                borderRight: `1px solid ${G.zandMid}`,
-                borderBottom: `1px solid ${G.zandMid}`,
-                padding: "6px 7px",
-                background: isVandaag ? "#F0F9F0" : isWeekend ? "#FDFAF5" : G.kaart,
-                position: "relative",
-                cursor: "pointer",
+              <div key={dag.iso} onClick={() => { setBewerkDag({ iso: dag.iso, dag: dag.dag }); setBewerkInput(dag.entry?.maaltijd || ""); }} style={{
+                minHeight: 80, borderRight: `1px solid ${G.zandMid}`, borderBottom: `1px solid ${G.zandMid}`,
+                padding: "6px 7px", background: isVandaag ? "#F0F9F0" : isWeekend ? "#FDFAF5" : G.kaart, cursor: "pointer",
               }}>
-                {/* Dagnummer */}
                 <div style={{ fontSize: 12, fontWeight: isVandaag ? 600 : 400, color: isVandaag ? G.groen : G.tekstZacht, marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={isVandaag ? { background: G.groen, color: "#fff", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11 } : {}}>
-                    {dag.dag}
-                  </span>
-                  {dag.entry?.weer && (
-                    <span style={{ fontSize: 13 }} title={dag.entry.temp ? `${dag.entry.temp}°` : ""}>{dag.entry.weer}</span>
-                  )}
+                  <span style={isVandaag ? { background: G.groen, color: "#fff", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11 } : {}}>{dag.dag}</span>
+                  {dag.entry?.weer && <span style={{ fontSize: 13 }}>{dag.entry.weer}</span>}
                 </div>
-
-                {/* Maaltijd */}
                 {heeftMaaltijd ? (
                   <div style={{ fontSize: 10.5, lineHeight: 1.35, color: G.tekst, background: G.groenPale, borderRadius: 4, padding: "3px 5px", borderLeft: `2px solid ${G.groenLicht}` }}>
                     {dag.entry.maaltijd.length > 28 ? dag.entry.maaltijd.substring(0, 26) + "…" : dag.entry.maaltijd}
@@ -2396,26 +2515,15 @@ function KalenderPage({ geschiedenis, setGeschiedenis }) {
       {/* Legenda */}
       <div style={{ display: "flex", gap: 16, marginTop: 14, flexWrap: "wrap", fontSize: 11, color: G.tekstZacht, alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <div style={{ width: 12, height: 12, background: G.groenPale, borderRadius: 2, borderLeft: `2px solid ${G.groenLicht}` }} />
-          Maaltijd gepland
+          <div style={{ width: 12, height: 12, background: G.groenPale, borderRadius: 2, borderLeft: `2px solid ${G.groenLicht}` }} />Maaltijd gepland
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <div style={{ width: 20, height: 20, background: G.groen, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontSize: 9, color: "#fff" }}>•</span>
-          </div>
+          <div style={{ width: 20, height: 20, background: G.groen, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 9, color: "#fff" }}>•</span></div>
           Vandaag
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <span style={{ fontSize: 14 }}>🌤</span>
-          Weer van die dag
-        </div>
-        {Object.keys(geschiedenis).length > 0 && (
-          <div style={{ marginLeft: "auto", fontSize: 11, color: G.tekstZacht }}>
-            {Object.keys(geschiedenis).length} dagen met maaltijden opgeslagen
-          </div>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ fontSize: 14 }}>🌤</span>Weer van die dag</div>
+        {Object.keys(g).length > 0 && <div style={{ marginLeft: "auto" }}>{Object.keys(g).length} dagen opgeslagen</div>}
       </div>
-
       <div style={{ fontSize: 11, color: G.tekstZacht, marginTop: 10 }}>Klik op een dag om een maaltijd in te vullen of te bewerken</div>
 
       {/* Bewerkmodal */}
@@ -3470,7 +3578,7 @@ function AppWithStorage() {
           {mobilePagina === "planner"     && <PlannerPage planning={planning} setPlanning={setPlanning} recepten={recepten} setRecepten={setRecepten} gezinData={gezinData} isMobile={isMobile} />}
           {mobilePagina === "recepten"    && <ReceptenPage recepten={recepten} setRecepten={setRecepten} isMobile={isMobile} />}
           {mobilePagina === "boodschappen"&& <BoodschappenPage planning={planning} isMobile={isMobile} />}
-          {mobilePagina === "kalender"    && <KalenderPage geschiedenis={geschiedenis} setGeschiedenis={setGeschiedenis} />}
+          {mobilePagina === "kalender"    && <KalenderPage geschiedenis={geschiedenis} setGeschiedenis={setGeschiedenis} isMobile={true} />}
         </main>
 
         {/* Overlays */}
