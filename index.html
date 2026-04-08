@@ -1801,32 +1801,77 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
               Vorige dagen
               {leegAantal > 0 && <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 20, background: G.groenLicht, color: G.groen, fontWeight: 600 }}>{leegAantal} leeg</span>}
             </button>
-            {verldenOpen && (
-              <div style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, padding: mobile ? "14px 16px" : "16px 20px", marginTop: 6 }}>
-                <div style={{ fontSize: 11.5, color: G.tekstZacht, marginBottom: 12 }}>Vul in of bewerk wat je gegeten hebt</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {verldenDagen.map(k => {
-                    const rl = relatieveLabel(k);
-                    const dagLabel = rl || dagNaamVol(k);
-                    const r = planning[k]?.recept;
-                    return (
-                      <div key={k} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 12px", background: r ? G.groenPale : G.zand, borderRadius: 9, border: `1px solid ${r ? G.groenZacht : G.zandMid}` }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                            <span style={{ fontWeight: 500, color: G.tekst, fontSize: 13 }}>{dagLabel}</span>
-                            <span style={{ color: G.tekstZacht, fontSize: 12 }}>{formatDDMM(k)}</span>
+            {verldenOpen && (() => {
+              const [bewerkKey, setBewerkKey] = React.useState(null);
+              const [bewerkInput, setBewerkInput] = React.useState("");
+
+              const slaVerldenOp = (k) => {
+                if (!bewerkInput.trim()) return;
+                const handmatig = { id: `handmatig-${k}`, naam: bewerkInput.trim(), handmatig: true, tags: [], gemaaktData: [], rating: 0 };
+                const bestaand = planning[k] || { thuiswerk: false, personen: 4 };
+                setPlanning({ ...planning, [k]: { ...bestaand, recept: handmatig } });
+                slaOpInGeschiedenis(k, handmatig.naam, null, null);
+                setBewerkKey(null);
+                setBewerkInput("");
+              };
+
+              return (
+                <div style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, padding: mobile ? "14px 16px" : "16px 20px", marginTop: 6 }}>
+                  <div style={{ fontSize: 11.5, color: G.tekstZacht, marginBottom: 12 }}>Vul in of bewerk wat je gegeten hebt</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {verldenDagen.map(k => {
+                      const rl = relatieveLabel(k);
+                      const dagLabel = rl || dagNaamVol(k);
+                      const r = planning[k]?.recept;
+                      const isBewerken = bewerkKey === k;
+
+                      return (
+                        <div key={k} style={{ borderRadius: 9, border: `1px solid ${r ? G.groenZacht : G.zandMid}`, background: r ? G.groenPale : G.zand, overflow: "hidden" }}>
+                          {/* Rij header */}
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px" }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                                <span style={{ fontWeight: 500, color: G.tekst, fontSize: 13 }}>{dagLabel}</span>
+                                <span style={{ color: G.tekstZacht, fontSize: 12 }}>{formatDDMM(k)}</span>
+                              </div>
+                              {r && !isBewerken && <div style={{ fontSize: 11.5, color: G.groenMid, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.naam}</div>}
+                            </div>
+                            {!isBewerken && (
+                              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                                <button
+                                  onClick={() => { setBewerkKey(k); setBewerkInput(r?.naam || ""); }}
+                                  style={{ padding: "7px 11px", background: "transparent", color: G.groenMid, border: `1px solid ${G.groenZacht}`, borderRadius: 7, cursor: "pointer", fontSize: 12 }}
+                                >✏️ Eigen invoer</button>
+                                <button
+                                  onClick={() => setSelectDag({ key: k, label: `${dagLabel} ${formatDDMM(k)}` })}
+                                  style={{ padding: "7px 11px", background: r ? G.groenMid : G.groen, color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontSize: 12, fontWeight: 500 }}
+                                >{r ? "Recept" : "Kies recept"}</button>
+                              </div>
+                            )}
                           </div>
-                          {r && <div style={{ fontSize: 11.5, color: G.groenMid, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.naam}</div>}
+
+                          {/* Inline invoerveld */}
+                          {isBewerken && (
+                            <div style={{ padding: "0 12px 12px", display: "flex", gap: 8 }}>
+                              <input
+                                autoFocus
+                                value={bewerkInput}
+                                onChange={e => setBewerkInput(e.target.value)}
+                                onKeyDown={e => { if (e.key === "Enter") slaVerldenOp(k); if (e.key === "Escape") setBewerkKey(null); }}
+                                placeholder="Wat heb je gegeten?"
+                                style={{ flex: 1, border: `1.5px solid ${G.groenZacht}`, borderRadius: 8, padding: "9px 12px", fontSize: 14, color: G.tekst, background: "#fff", outline: "none", fontFamily: "inherit" }}
+                              />
+                              <button onClick={() => slaVerldenOp(k)} style={{ padding: "9px 14px", background: G.groen, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Opslaan</button>
+                              <button onClick={() => setBewerkKey(null)} style={{ padding: "9px 10px", background: "transparent", color: G.tekstZacht, border: `1px solid ${G.zandMid}`, borderRadius: 8, cursor: "pointer", fontSize: 13 }}>✕</button>
+                            </div>
+                          )}
                         </div>
-                        <button onClick={() => setSelectDag({ key: k, label: `${dagLabel} ${formatDDMM(k)}` })} style={{ padding: "8px 14px", background: r ? G.groenMid : G.groen, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 500, flexShrink: 0 }}>
-                          {r ? "Bewerken" : "Invullen"}
-                        </button>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         );
       })()}
