@@ -3014,56 +3014,195 @@ function StatistiekenPage({ recepten, planning, geschiedenis: geschiedenisProps 
   );
 }
 
+const ROL_EMOJI  = { vader: "👨", moeder: "👩", zoon: "👦", dochter: "👧" };
+const ROL_LABELS = ["vader", "moeder", "zoon", "dochter"];
+
 const DEFAULT_GEZIN = [
-  { naam: "Vader", avatar: "V", kleur: G.groen, rol: "Volwassene", dieet: ["Vegetarisch","Vis"] },
-  { naam: "Moeder", avatar: "M", kleur: G.groenMid, rol: "Volwassene", dieet: ["Vegetarisch","Vis"] },
-  { naam: "Zoon", avatar: "Z", kleur: G.zandDeep, rol: "7 jaar", dieet: ["Vegetarisch"] },
-  { naam: "Dochter", avatar: "D", kleur: G.groenLicht, rol: "5 jaar", dieet: ["Vegetarisch"] },
+  { id: "lid-1", rol: "vader",   naam: "",      leeftijd: "", dieet: [] },
+  { id: "lid-2", rol: "moeder",  naam: "",      leeftijd: "", dieet: [] },
 ];
 
+// Migreer oud formaat naar nieuw
+function migreerGezin(data) {
+  if (!Array.isArray(data)) return DEFAULT_GEZIN;
+  return data.map((p, i) => {
+    if (p.id && p.rol && ROL_LABELS.includes(p.rol)) return p; // al nieuw formaat
+    // Oud formaat: { naam, avatar, kleur, rol, dieet }
+    const rolGuess = ["vader","moeder","zoon","dochter"].find(r => p.naam?.toLowerCase().includes(r) || p.rol?.toLowerCase().includes(r)) || "vader";
+    return { id: p.id || `lid-migr-${i}`, rol: rolGuess, naam: p.naam || "", leeftijd: "", dieet: Array.isArray(p.dieet) ? p.dieet : [] };
+  });
+}
+
+function GezinslidFormulier({ lid, onOpslaan, onAnnuleer }) {
+  const isNieuw = !lid;
+  const [rol, setRol]           = useState(lid?.rol || "vader");
+  const [naam, setNaam]         = useState(lid?.naam || "");
+  const [leeftijd, setLeeftijd] = useState(lid?.leeftijd || "");
+  const [dieet, setDieet]       = useState(lid?.dieet || []);
+  const [dieetInput, setDieetInput] = useState("");
+
+  const voegDieetToe = () => {
+    const v = dieetInput.trim();
+    if (v && !dieet.includes(v)) { setDieet([...dieet, v]); setDieetInput(""); }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: 360, boxShadow: "0 16px 48px rgba(0,0,0,.25)" }}>
+        <div style={{ fontFamily: "'Playfair Display',Georgia,serif", fontSize: 18, marginBottom: 18, color: G.tekst }}>
+          {isNieuw ? "Gezinslid toevoegen" : "Gezinslid bewerken"}
+        </div>
+
+        {/* Rol */}
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 11, color: G.tekstZacht, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 8 }}>Rol</label>
+          <div style={{ display: "flex", gap: 8 }}>
+            {ROL_LABELS.map(r => (
+              <button key={r} onClick={() => setRol(r)} style={{
+                flex: 1, padding: "10px 4px", border: `2px solid ${rol === r ? G.groen : G.zandMid}`,
+                borderRadius: 10, background: rol === r ? "#EFF5EF" : "transparent",
+                cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, minHeight: "unset"
+              }}>
+                <span style={{ fontSize: 22 }}>{ROL_EMOJI[r]}</span>
+                <span style={{ fontSize: 11, color: rol === r ? G.groen : G.tekstZacht, fontWeight: rol === r ? 600 : 400, textTransform: "capitalize" }}>{r}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Naam (optioneel) */}
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 11, color: G.tekstZacht, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 6 }}>Naam <span style={{ fontWeight: 400, textTransform: "none" }}>(optioneel)</span></label>
+          <input value={naam} onChange={e => setNaam(e.target.value)} placeholder={`bijv. ${rol.charAt(0).toUpperCase() + rol.slice(1)}`}
+            style={{ width: "100%", border: `1px solid ${G.zandMid}`, borderRadius: 8, padding: "9px 12px", fontSize: 14, color: G.tekst, outline: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
+        </div>
+
+        {/* Leeftijd (optioneel) */}
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 11, color: G.tekstZacht, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 6 }}>Leeftijd <span style={{ fontWeight: 400, textTransform: "none" }}>(optioneel)</span></label>
+          <input value={leeftijd} onChange={e => setLeeftijd(e.target.value.replace(/[^0-9]/g,""))} placeholder="bijv. 35"
+            inputMode="numeric" maxLength={3}
+            style={{ width: "100%", border: `1px solid ${G.zandMid}`, borderRadius: 8, padding: "9px 12px", fontSize: 14, color: G.tekst, outline: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
+        </div>
+
+        {/* Dieetwensen */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 11, color: G.tekstZacht, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em", display: "block", marginBottom: 6 }}>Dieetwensen <span style={{ fontWeight: 400, textTransform: "none" }}>(optioneel)</span></label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+            {dieet.map(d => (
+              <span key={d} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", background: G.groenPale, color: G.groenMid, borderRadius: 20, fontSize: 12, border: `1px solid ${G.groenZacht}` }}>
+                {d}
+                <span onClick={() => setDieet(dieet.filter(x => x !== d))} style={{ cursor: "pointer", fontSize: 13, lineHeight: 1 }}>✕</span>
+              </span>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <input value={dieetInput} onChange={e => setDieetInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && voegDieetToe()}
+              placeholder="bijv. vegetarisch, glutenvrij…"
+              style={{ flex: 1, border: `1px solid ${G.zandMid}`, borderRadius: 8, padding: "8px 10px", fontSize: 13, color: G.tekst, outline: "none", fontFamily: "inherit" }} />
+            <button onClick={voegDieetToe} style={{ padding: "8px 12px", background: G.groen, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14 }}>+</button>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={onAnnuleer} style={{ flex: 1, padding: "11px", border: `1px solid ${G.zandMid}`, borderRadius: 9, background: "transparent", color: G.tekst, cursor: "pointer", fontSize: 14 }}>Annuleer</button>
+          <button onClick={() => onOpslaan({ rol, naam: naam.trim(), leeftijd: leeftijd ? Number(leeftijd) : "", dieet })}
+            style={{ flex: 2, padding: "11px", border: "none", borderRadius: 9, background: G.groen, color: "#fff", cursor: "pointer", fontSize: 14, fontWeight: 500 }}>Opslaan</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function GezinPage({ savedData, onSave }) {
-  const [gezin, setGezinState] = useState(savedData || DEFAULT_GEZIN);
-  const [inputs, setInputs] = useState(["","","",""]);
+  const rawData = savedData ? migreerGezin(savedData) : DEFAULT_GEZIN;
+  const [gezin, setGezinState] = useState(rawData);
+  const [formulier, setFormulier] = useState(null); // null | { modus: "nieuw"|"bewerk", lid?, index? }
 
   const setGezin = (g) => { setGezinState(g); if (onSave) onSave(g); };
 
-  const addDieet = (i) => {
-    const v = inputs[i].trim();
-    if (!v || gezin[i].dieet.includes(v)) return;
-    const updated = gezin.map((p, idx) => idx === i ? { ...p, dieet: [...p.dieet, v] } : p);
-    setGezin(updated);
-    setInputs(inputs.map((inp, idx) => idx === i ? "" : inp));
+  const slaOp = ({ rol, naam, leeftijd, dieet }) => {
+    if (formulier.modus === "nieuw") {
+      const nieuw = { id: "lid-" + Date.now(), rol, naam, leeftijd, dieet };
+      setGezin([...gezin, nieuw]);
+    } else {
+      setGezin(gezin.map((p, i) => i === formulier.index ? { ...p, rol, naam, leeftijd, dieet } : p));
+    }
+    setFormulier(null);
   };
 
-  const removeDieet = (i, item) => {
-    setGezin(gezin.map((p, idx) => idx === i ? { ...p, dieet: p.dieet.filter(d => d !== item) } : p));
+  const verwijder = (i) => {
+    if (!confirm("Dit gezinslid verwijderen?")) return;
+    setGezin(gezin.filter((_, idx) => idx !== i));
   };
 
   return (
     <div style={{ padding: 24, maxWidth: 700 }}>
       <div style={{ fontFamily: "Georgia,serif", fontSize: 24, color: G.groen, marginBottom: 4 }}>Ons gezin</div>
-      <div style={{ fontSize: 12.5, color: G.tekstMid, marginBottom: 20 }}>Dieetwensen per gezinslid</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 12 }}>
+      <div style={{ fontSize: 12.5, color: G.tekstMid, marginBottom: 20 }}>Gezinsleden en dieetwensen</div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12, marginBottom: 16 }}>
         {gezin.map((p, i) => (
-          <div key={i} style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, padding: 18, textAlign: "center" }}>
-            <div style={{ width: 52, height: 52, borderRadius: "50%", background: p.kleur, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Georgia,serif", fontSize: 20, color: "#fff", margin: "0 auto 10px" }}>{p.avatar}</div>
-            <div style={{ fontFamily: "Georgia,serif", fontSize: 14, color: G.tekst, marginBottom: 3 }}>{p.naam}</div>
-            <div style={{ fontSize: 10.5, color: G.tekstZacht, marginBottom: 12 }}>{p.rol}</div>
-            <div style={{ marginBottom: 9 }}>
-              {p.dieet.map(d => (
-                <div key={d} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 7px", background: G.zand, borderRadius: 7, marginBottom: 3, fontSize: 11.5 }}>
-                  <span>{d}</span>
-                  <span onClick={() => removeDieet(i, d)} style={{ cursor: "pointer", color: G.tekstZacht, fontSize: 12 }}>✕</span>
+          <div key={p.id || i} style={{ background: G.kaart, borderRadius: 14, border: `1px solid ${G.zandMid}`, padding: "18px 16px", position: "relative" }}>
+            {/* Emoji + naam/rol */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <div style={{ fontSize: 36, lineHeight: 1, flexShrink: 0 }}>{ROL_EMOJI[p.rol] || "👤"}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 15, color: G.tekst, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {p.naam || (p.rol.charAt(0).toUpperCase() + p.rol.slice(1))}
                 </div>
-              ))}
+                <div style={{ fontSize: 11, color: G.tekstZacht, marginTop: 1, display: "flex", gap: 6 }}>
+                  <span style={{ textTransform: "capitalize" }}>{p.rol}</span>
+                  {p.leeftijd && <span>· {p.leeftijd} jaar</span>}
+                </div>
+              </div>
             </div>
-            <div style={{ display: "flex", gap: 4 }}>
-              <input value={inputs[i]} onChange={e => setInputs(inputs.map((v, idx) => idx === i ? e.target.value : v))} onKeyDown={e => e.key === "Enter" && addDieet(i)} placeholder="Dieetwens..." style={{ flex: 1, border: `1px solid ${G.zandMid}`, borderRadius: 7, padding: "4px 7px", fontSize: 11, background: G.zand, outline: "none", color: G.tekst }} />
-              <button onClick={() => addDieet(i)} style={{ padding: "4px 7px", background: G.groen, color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontSize: 12 }}>+</button>
+
+            {/* Dieetwensen */}
+            {p.dieet?.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 12 }}>
+                {p.dieet.map(d => (
+                  <span key={d} style={{ fontSize: 11, padding: "3px 8px", background: G.groenPale, color: G.groenMid, borderRadius: 20, border: `1px solid ${G.groenZacht}` }}>{d}</span>
+                ))}
+              </div>
+            )}
+            {(!p.dieet || p.dieet.length === 0) && (
+              <div style={{ fontSize: 11, color: "#ccc", marginBottom: 12 }}>Geen dieetwensen</div>
+            )}
+
+            {/* Knoppen */}
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={() => setFormulier({ modus: "bewerk", lid: p, index: i })}
+                style={{ flex: 1, padding: "7px", border: `1px solid ${G.zandMid}`, borderRadius: 8, background: "transparent", color: G.tekstMid, cursor: "pointer", fontSize: 12 }}>
+                Bewerken
+              </button>
+              <button onClick={() => verwijder(i)}
+                style={{ padding: "7px 10px", border: "1px solid #e0bebe", borderRadius: 8, background: "transparent", color: "#c0392b", cursor: "pointer", fontSize: 12 }}>
+                ✕
+              </button>
             </div>
           </div>
         ))}
+
+        {/* Toevoegen knop */}
+        <div onClick={() => setFormulier({ modus: "nieuw" })} style={{
+          borderRadius: 14, border: `2px dashed ${G.zandMid}`, padding: "18px 16px",
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          cursor: "pointer", color: G.tekstZacht, gap: 8, minHeight: 120
+        }}>
+          <span style={{ fontSize: 28 }}>＋</span>
+          <span style={{ fontSize: 13 }}>Gezinslid toevoegen</span>
+        </div>
       </div>
+
+      {formulier && (
+        <GezinslidFormulier
+          lid={formulier.lid || null}
+          onOpslaan={slaOp}
+          onAnnuleer={() => setFormulier(null)}
+        />
+      )}
     </div>
   );
 }
