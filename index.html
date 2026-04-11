@@ -1221,7 +1221,7 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
       if (inSeizoen) s += 3;
       if (andereCats.includes(getCat(r.naam))) s -= 5;
       if (gebruikteIdsElders.has(r.id)) s -= 8;
-      s += Math.random() * 1.5; // meer willekeur voor refresh
+      s += Math.random() * 4; // meer willekeur voor refresh
       return s;
     }
 
@@ -1237,7 +1237,9 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
     const pool = vers.length >= 3 ? vers : kandidaten;
 
     const gesorteerd = [...pool].sort((a, b) => score(b) - score(a));
-    const keuze = gesorteerd[0];
+    // Kies willekeurig uit top 5 voor meer variatie
+    const topVijf = gesorteerd.slice(0, Math.min(5, gesorteerd.length));
+    const keuze = topVijf[Math.floor(Math.random() * topVijf.length)];
     if (!keuze) return;
 
     const bijgewerkt = { ...planning, [key]: { ...(planning[key] || { thuiswerk: false, personen: 4 }), recept: keuze } };
