@@ -1460,7 +1460,51 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
       <div style={{ fontFamily: "Georgia,serif", fontSize: mobile ? 20 : 24, color: G.groen, marginBottom: 4 }}>Maaltijdplanner</div>
       <div style={{ fontSize: mobile ? 14 : 12.5, color: G.tekstMid, marginBottom: 20 }}>Plan je avondmaaltijden — flexibel per dag</div>
 
-      {/* Aankomende dagen selectie */}
+      {/* 1. Weersvoorspelling */}
+      {weer.length > 0 && (
+        <div style={{ background: G.kaart, borderRadius: 10, border: `1px solid ${G.zandMid}`, padding: "10px 16px", marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={G.groenMid} strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+              <span style={{ fontSize: 11, fontWeight: 500, color: G.groenMid }}>Eindhoven</span>
+            </div>
+            <span style={{ fontSize: 10, color: G.tekstZacht }}>komende 7 dagen</span>
+          </div>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+            {weer.map((w, i) => (
+              <div key={i} style={{ fontSize: 11.5, color: G.tekstMid, display: "flex", alignItems: "center", gap: 3 }}>
+                {w.naam} {w.icon} <strong style={{ color: G.tekst }}>{w.temp}°</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 2. Vorige dagen */}
+      {(() => {
+        const verldenDagen = Array.from({length:7}, (_,i) => datumOffset(-(7-i)));
+        const leegAantal = verldenDagen.filter(k => !planning[k]?.recept).length;
+        return (
+          <div style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, padding: "10px 16px", marginBottom: 14 }}>
+            <button onClick={() => setVerldenOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 7, background: "none", border: "none", cursor: "pointer", padding: "4px 0", color: G.tekstMid, fontSize: mobile ? 14 : 12.5, fontWeight: 500, width: "100%" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: verldenOpen ? "rotate(90deg)" : "none", transition: "transform .15s" }}><polyline points="9 18 15 12 9 6"/></svg>
+              Vorige dagen
+              {leegAantal > 0 && <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 20, background: G.groenLicht, color: G.groen, fontWeight: 600 }}>{leegAantal} leeg</span>}
+            </button>
+            {verldenOpen && (
+              <VerldenDagenLijst
+                verldenDagen={verldenDagen}
+                planning={planning}
+                setPlanning={setPlanning}
+                setSelectDag={setSelectDag}
+                mobile={mobile}
+              />
+            )}
+          </div>
+        );
+      })()}
+
+      {/* 3. Welke dagen + Voorraad */}
       <div style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, padding: mobile ? "14px 16px" : "16px 20px", marginBottom: 14 }}>
         <div style={{ fontSize: 11, fontWeight: 500, color: G.groenMid, textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 12 }}>Welke dagen wil je plannen?</div>
         <div style={{ display: "flex", gap: mobile ? 8 : 10, flexWrap: "wrap", alignItems: "center" }}>
@@ -1514,10 +1558,7 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
         <div style={{ fontSize: 11, color: G.tekstZacht, marginTop: 10 }}>
           {selectedAankomend.size === 0 ? "Selecteer minimaal één dag" : `${selectedAankomend.size} dag${selectedAankomend.size > 1 ? "en" : ""} geselecteerd`}
         </div>
-      </div>
-
-      {/* Voorraad */}
-      <div style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, padding: "18px 20px", marginBottom: 14 }}>
+        <div style={{ borderTop: `1px solid ${G.zandMid}`, margin: "16px 0" }} />
         <div style={{ fontFamily: "Georgia,serif", fontSize: 14, color: G.groen, marginBottom: 14 }}>Wat heb ik nog in huis?</div>
 
         {/* Handmatige invoer — primair */}
@@ -1686,26 +1727,6 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
         </div>
       )}
 
-      {/* Weer */}
-      {weer.length > 0 && (
-        <div style={{ background: G.kaart, borderRadius: 10, border: `1px solid ${G.zandMid}`, padding: "10px 16px", marginBottom: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={G.groenMid} strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-              <span style={{ fontSize: 11, fontWeight: 500, color: G.groenMid }}>Eindhoven</span>
-            </div>
-            <span style={{ fontSize: 10, color: G.tekstZacht }}>komende 7 dagen</span>
-          </div>
-          <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-            {weer.map((w, i) => (
-              <div key={i} style={{ fontSize: 11.5, color: G.tekstMid, display: "flex", alignItems: "center", gap: 3 }}>
-                {w.naam} {w.icon} <strong style={{ color: G.tekst }}>{w.temp}°</strong>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Dag grid — gisteren + vandaag + komende 6 dagen (altijd 8 vaste dagen) */}
       {(() => {
         const vandaag = vandaagISO();
@@ -1860,29 +1881,6 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
         );
       })()}
 
-      {/* Vorige dagen — log of bewerk wat je eerder gegeten hebt */}
-      {(() => {
-        const verldenDagen = Array.from({length:7}, (_,i) => datumOffset(-(7-i))); // dag -7 t/m dag -1 (gisteren t/m een week terug)
-        const leegAantal = verldenDagen.filter(k => !planning[k]?.recept).length;
-        return (
-          <div style={{ marginTop: 18 }}>
-            <button onClick={() => setVerldenOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 7, background: "none", border: "none", cursor: "pointer", padding: "8px 0", color: G.tekstMid, fontSize: mobile ? 14 : 12.5, fontWeight: 500 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: verldenOpen ? "rotate(90deg)" : "none", transition: "transform .15s" }}><polyline points="9 18 15 12 9 6"/></svg>
-              Vorige dagen
-              {leegAantal > 0 && <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 20, background: G.groenLicht, color: G.groen, fontWeight: 600 }}>{leegAantal} leeg</span>}
-            </button>
-            {verldenOpen && (
-              <VerldenDagenLijst
-                verldenDagen={verldenDagen}
-                planning={planning}
-                setPlanning={setPlanning}
-                setSelectDag={setSelectDag}
-                mobile={mobile}
-              />
-            )}
-          </div>
-        );
-      })()}
 
       {selectDag && (
         <SelectModal
