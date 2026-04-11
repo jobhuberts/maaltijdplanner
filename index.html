@@ -1707,7 +1707,7 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
       {/* Dag grid — gisteren + vandaag + komende 6 dagen (altijd 8 vaste dagen) */}
       {(() => {
         const vandaag = vandaagISO();
-        const zichtbareKeys = Array.from({length: 8}, (_, i) => datumOffset(i - 1)); // gisteren t/m dag+6
+        const zichtbareKeys = Array.from({length: 7}, (_, i) => datumOffset(i)); // vandaag t/m dag+6
         if (zichtbareKeys.length === 0) return (
           <div style={{ background: G.kaart, border: `1px dashed ${G.zandMid}`, borderRadius: 12, padding: 32, textAlign: "center", color: G.tekstZacht, fontSize: 13 }}>
             Selecteer aankomende dagen om te plannen
@@ -1860,7 +1860,7 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
 
       {/* Vorige dagen — log of bewerk wat je eerder gegeten hebt */}
       {(() => {
-        const verldenDagen = Array.from({length:6}, (_,i) => datumOffset(-(7-i))); // dag -7 t/m dag -2 (gisteren zit in het grid)
+        const verldenDagen = Array.from({length:7}, (_,i) => datumOffset(-(7-i))); // dag -7 t/m dag -1 (gisteren t/m een week terug)
         const leegAantal = verldenDagen.filter(k => !planning[k]?.recept).length;
         return (
           <div style={{ marginTop: 18 }}>
