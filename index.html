@@ -1212,16 +1212,16 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
 
     function score(r) {
       let s = 0;
-      if (r.rating === 5) s += 8;
-      else if (r.rating === 4) s += 5;
+      if (r.rating === 5) s += 5;
+      else if (r.rating === 4) s += 4;
       else if (r.rating === 3) s += 1;
       else if (r.rating <= 2 && r.rating > 0) s -= 2;
       else s += 2;
       const inSeizoen = Array.isArray(r.seizoen) ? r.seizoen.includes(huidigSeizoen) : r.seizoen === huidigSeizoen;
-      if (inSeizoen) s += 3;
-      if (andereCats.includes(getCat(r.naam))) s -= 5;
+      if (inSeizoen) s += 2;
+      if (andereCats.includes(getCat(r.naam))) s -= 4;
       if (gebruikteIdsElders.has(r.id)) s -= 8;
-      s += Math.random() * 4; // meer willekeur voor refresh
+      s += Math.random() * 4; // willekeur groter dan verschil 4/5 sterren
       return s;
     }
 
