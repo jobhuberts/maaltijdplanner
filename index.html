@@ -697,6 +697,33 @@ function VerldenDagenLijst({ verldenDagen, planning, setPlanning, setSelectDag, 
   );
 }
 
+function NieuwReceptModal({ voorstel, onAccept, onSla, mobile }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1100, display: "flex", alignItems: mobile ? "flex-end" : "center", justifyContent: "center", padding: mobile ? 0 : 24 }}>
+      <div style={{ background: G.kaart, borderRadius: mobile ? "18px 18px 0 0" : 16, padding: mobile ? "24px 20px 36px" : 28, maxWidth: 420, width: "100%" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
+          <span style={{ fontSize: 18 }}>✨</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: G.groen, textTransform: "uppercase", letterSpacing: ".07em" }}>Nieuw recept ontdekt</span>
+        </div>
+        <div style={{ fontFamily: "Georgia,serif", fontSize: mobile ? 19 : 17, color: G.tekst, marginBottom: 8 }}>{voorstel.naam}</div>
+        <div style={{ fontSize: 13, color: G.tekstMid, lineHeight: 1.65, marginBottom: 10 }}>{voorstel.beschrijving}</div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 20 }}>
+          {voorstel.tags?.map(t => <span key={t} style={{ fontSize: 11, padding: "2px 8px", background: G.groenPale, color: G.groenMid, borderRadius: 20, border: `1px solid ${G.groenZacht}` }}>{t}</span>)}
+          {voorstel.kooktijd && <span style={{ fontSize: 11, padding: "2px 8px", background: G.zand, color: G.tekstMid, borderRadius: 20, border: `1px solid ${G.zandMid}` }}>⏱ {voorstel.kooktijd} min</span>}
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={onAccept} style={{ flex: 1, padding: mobile ? "14px" : "10px", background: G.groen, color: "#fff", border: "none", borderRadius: 10, fontSize: mobile ? 15 : 13, fontWeight: 600, cursor: "pointer" }}>
+            ✓ Voeg toe &amp; plan
+          </button>
+          <button onClick={onSla} style={{ padding: mobile ? "14px 18px" : "10px 16px", background: "transparent", color: G.tekstMid, border: `1px solid ${G.zandMid}`, borderRadius: 10, fontSize: mobile ? 15 : 13, cursor: "pointer" }}>
+            Sla over
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, isMobile = false }) {
   const mobile = isMobile;
 
@@ -721,6 +748,43 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
   const [handmatigIngr, setHandmatigIngr] = useState([]);
   const [aiBezig, setAiBezig] = useState(false);
   const [aiResultaat, setAiResultaat] = useState("");
+  const [nieuwReceptQueue, setNieuwReceptQueue] = useState([]); // [{key, naam, beschrijving, seizoen, tags, kooktijd}]
+  const [nieuwReceptLaden, setNieuwReceptLaden] = useState(false);
+
+  const genereerNieuweRecepten = async (geselecteerdeDagen, nieuwePlanning, gezin) => {
+    const resterend = 2 - getAantalNieuwDezeWeek();
+    if (resterend <= 0 || !loadApiKey()) return;
+    const maand = new Date().getMonth();
+    const seizoen = maand <= 1 || maand === 11 ? "winter" : maand <= 4 ? "lente" : maand <= 7 ? "zomer" : "herfst";
+    const bestaandeNamen = Object.values(nieuwePlanning).map(p => p.recept?.naam).filter(Boolean);
+    const dieetwensen = gezin?.leden?.flatMap(l => l.dieet || []).filter(Boolean) || [];
+    const dieetZin = dieetwensen.length > 0 ? `Dieetwensen: ${[...new Set(dieetwensen)].join(", ")}.` : "Het gezin eet bij voorkeur vegetarisch.";
+    const aantalNieuw = Math.min(resterend, 2, geselecteerdeDagen.length);
+    // Kies willekeurige dagen uit de selectie
+    const shuffled = [...geselecteerdeDagen].sort(() => Math.random() - 0.5);
+    const gekozenDagen = shuffled.slice(0, aantalNieuw);
+    setNieuwReceptLaden(true);
+    const voorstellen = [];
+    for (const key of gekozenDagen) {
+      try {
+        const prompt = `Je bent een recept-assistent voor een Nederlands gezin. Stel één nieuw, lekker avondmaaltijdrecept voor.
+${dieetZin}
+Seizoen: ${seizoen}.
+Vermijd deze recepten die al gepland zijn: ${bestaandeNamen.join(", ") || "geen"}.
+Het recept moet kookbaar zijn op een doordeweekse avond (max 45 min).
+Geef je antwoord als geldig JSON object (geen markdown, alleen JSON):
+{"naam":"...","beschrijving":"één aantrekkelijke zin","seizoen":["${seizoen}"],"tags":["vegetarisch"],"kooktijd":30}`;
+        const data = await claudeFetch({ model: "claude-haiku-4-5-20251001", max_tokens: 200, messages: [{ role: "user", content: prompt }] });
+        const text = data.content?.[0]?.text || "";
+        const match = text.match(/\{[\s\S]*\}/);
+        if (!match) continue;
+        const json = JSON.parse(match[0]);
+        if (json?.naam) voorstellen.push({ key, ...json });
+      } catch (e) { console.warn("Nieuw recept genereren mislukt:", e); }
+    }
+    setNieuwReceptLaden(false);
+    if (voorstellen.length > 0) setNieuwReceptQueue(voorstellen);
+  };
 
   useEffect(() => {
     fetch("https://api.open-meteo.com/v1/forecast?latitude=51.42&longitude=5.56&daily=temperature_2m_max,weathercode&forecast_days=7&timezone=Europe%2FAmsterdam")
@@ -1171,6 +1235,9 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
     uitlegRegels.push(`✨ Lekker gevarieerd: ${uniekeCategorieen.join(", ")}. Eet smakelijk! 🥦`);
 
     setAiResultaat(uitlegRegels.join("\n"));
+
+    // ── Nieuwe recepten ontdekken (max 2/week) ───────────────────────────
+    genereerNieuweRecepten([...selectedAankomend], nieuweP, gezinData);
   };
 
   // ── Herplan één dag: kies een ander recept dan het huidige ──────────────
@@ -1888,6 +1955,31 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
         );
       })()}
 
+
+      {/* Nieuw recept ontdekking modal */}
+      {nieuwReceptLaden && (
+        <div style={{ position: "fixed", bottom: 24, right: 24, background: G.groen, color: "#fff", borderRadius: 12, padding: "12px 18px", fontSize: 13, zIndex: 1050, display: "flex", alignItems: "center", gap: 8, boxShadow: "0 4px 16px rgba(0,0,0,.15)" }}>
+          <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid rgba(255,255,255,.4)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+          Nieuwe recepten zoeken...
+        </div>
+      )}
+      {nieuwReceptQueue.length > 0 && (
+        <NieuwReceptModal
+          voorstel={nieuwReceptQueue[0]}
+          mobile={mobile}
+          onAccept={() => {
+            const voorstel = nieuwReceptQueue[0];
+            const nieuwId = `nieuw-${Date.now()}`;
+            const nieuwRecept = { id: nieuwId, naam: voorstel.naam, tags: voorstel.tags || [], seizoen: voorstel.seizoen || [], rating: 0, gemaaktData: [], dagen: 0, handmatig: false, nieuw: true };
+            setRecepten(prev => [...prev, nieuwRecept]);
+            const bestaand = planning[voorstel.key] || { thuiswerk: false, personen: 4 };
+            setPlanning(prev => ({ ...prev, [voorstel.key]: { ...bestaand, recept: nieuwRecept } }));
+            registreerNieuwRecept();
+            setNieuwReceptQueue(q => q.slice(1));
+          }}
+          onSla={() => setNieuwReceptQueue(q => q.slice(1))}
+        />
+      )}
 
       {selectDag && (
         <SelectModal
@@ -3248,6 +3340,25 @@ function saveApiKey(k) {
   try { localStorage.setItem(LS_APIKEY, k); } catch {}
 }
 // Centrale fetch-helper die altijd de juiste headers meestuurt
+// ── Nieuwe recept ontdekkingen: max 2 per week ─────────────────────────────
+const LS_NIEUWE_RECEPTEN_WEEK = "tw_nieuwe_recepten_week";
+function getWeekNummer() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  return Math.ceil(((now - start) / 86400000 + start.getDay() + 1) / 7);
+}
+function getAantalNieuwDezeWeek() {
+  try {
+    const d = JSON.parse(localStorage.getItem(LS_NIEUWE_RECEPTEN_WEEK) || "{}");
+    return d.week === getWeekNummer() ? (d.aantal || 0) : 0;
+  } catch { return 0; }
+}
+function registreerNieuwRecept() {
+  const week = getWeekNummer();
+  const huidig = getAantalNieuwDezeWeek();
+  try { localStorage.setItem(LS_NIEUWE_RECEPTEN_WEEK, JSON.stringify({ week, aantal: huidig + 1 })); } catch {}
+}
+
 async function claudeFetch(body) {
   const key = loadApiKey();
   const headers = { "Content-Type": "application/json" };
