@@ -1701,19 +1701,6 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
           Plan selectie
         </button>
-        <button onClick={() => {
-          const reset = { ...planning };
-          selectedAankomend.forEach(key => { if (reset[key]) reset[key] = { ...reset[key], recept: null }; });
-          setPlanning(reset);
-        }} style={{ flex: mobile ? 1 : "unset", padding: mobile ? "13px 16px" : "8px 16px", background: G.kaart, color: G.tekstMid, border: `1px solid ${G.zandMid}`, borderRadius: 10, fontSize: mobile ? 15 : 12.5, cursor: "pointer" }}>
-          Reset selectie
-        </button>
-        {!mobile && (
-          <button onClick={deelWeekAlsPDF} style={{ padding: "8px 16px", background: G.kaart, color: G.groen, border: `1px solid ${G.groenLicht}`, borderRadius: 8, fontSize: 12.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-            Deel als PDF
-          </button>
-        )}
       </div>
 
       {/* Weer */}
@@ -1727,7 +1714,7 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
         </div>
       )}
 
-      {/* Dag grid — gisteren + vandaag + komende 6 dagen (altijd 8 vaste dagen) */}
+      {/* Dag grid — vandaag + komende 6 dagen */}
       {(() => {
         const vandaag = vandaagISO();
         const zichtbareKeys = Array.from({length: 7}, (_, i) => datumOffset(i)); // vandaag t/m dag+6
@@ -1737,6 +1724,25 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
           </div>
         );
         return (
+      <div style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, padding: mobile ? "14px 16px" : "16px 20px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 500, color: G.groenMid, textTransform: "uppercase", letterSpacing: ".06em" }}>Geplande week</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={() => {
+              const reset = { ...planning };
+              selectedAankomend.forEach(key => { if (reset[key]) reset[key] = { ...reset[key], recept: null }; });
+              setPlanning(reset);
+            }} style={{ padding: mobile ? "8px 12px" : "5px 12px", background: G.kaart, color: G.tekstMid, border: `1px solid ${G.zandMid}`, borderRadius: 8, fontSize: mobile ? 13 : 11.5, cursor: "pointer" }}>
+              Reset
+            </button>
+            {!mobile && (
+              <button onClick={deelWeekAlsPDF} style={{ padding: "5px 12px", background: G.kaart, color: G.groen, border: `1px solid ${G.groenLicht}`, borderRadius: 8, fontSize: 11.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                Deel als PDF
+              </button>
+            )}
+          </div>
+        </div>
       <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: mobile ? 10 : 12 }}>
         {zichtbareKeys.map((key, idx) => {
           const isVerleden = key < vandaag;
@@ -1877,6 +1883,7 @@ function PlannerPage({ planning, setPlanning, recepten, setRecepten, gezinData, 
             </div>
           );
         })}
+      </div>
       </div>
         );
       })()}
