@@ -644,8 +644,8 @@ function VerldenDagenLijst({ verldenDagen, planning, setPlanning, setSelectDag, 
   };
 
   return (
-    <div style={{ background: G.kaart, borderRadius: 12, border: `1px solid ${G.zandMid}`, padding: mobile ? "14px 16px" : "16px 20px", marginTop: 6 }}>
-      <div style={{ fontSize: 11.5, color: G.tekstZacht, marginBottom: 12 }}>Vul in of bewerk wat je gegeten hebt</div>
+    <div style={{ marginTop: 10 }}>
+      <div style={{ fontSize: 11.5, color: G.tekstZacht, marginBottom: 10 }}>Vul in of bewerk wat je gegeten hebt</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {verldenDagen.map(k => {
           const rl = relatieveLabel(k);
