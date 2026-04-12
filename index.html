@@ -430,6 +430,7 @@ function alleTagsUitDatabase(recepten) {
 
 function ReceptDetailModal({ recept, alleRecepten, onClose, onSave, mobile = false }) {
   const [notes, setNotes] = useState(recept.notes);
+  const [aantalDagen, setAantalDagen] = useState(recept.dagen || 0);
   const [seizoenen, setSeizoeenen] = useState(
     Array.isArray(recept.seizoen) ? [...recept.seizoen] : recept.seizoen ? [recept.seizoen] : []
   );
@@ -539,6 +540,20 @@ function ReceptDetailModal({ recept, alleRecepten, onClose, onSave, mobile = fal
             </div>
           </div>
 
+          {/* Aantal dagen */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 7 }}>Aantal dagen</div>
+            <div style={{ display: "flex", gap: 6 }}>
+              {[{v:1,label:"1 dag"},{v:2,label:"2 dagen"}].map(({v,label}) => (
+                <button key={v} onClick={() => setAantalDagen(aantalDagen === v ? 0 : v)}
+                  style={{ padding: "5px 14px", borderRadius: 20, border: `1px solid ${aantalDagen === v ? G.groen : G.zandMid}`, background: aantalDagen === v ? G.groen : G.zand, color: aantalDagen === v ? "#fff" : G.tekstMid, fontSize: 12, cursor: "pointer", transition: "all .12s" }}>
+                  {label}
+                </button>
+              ))}
+              {aantalDagen > 0 && <span style={{ fontSize: 11, color: G.tekstZacht, alignSelf: "center" }}>— klik nogmaals om te wissen</span>}
+            </div>
+          </div>
+
           {/* Notities */}
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 5 }}>Persoonlijke notities</div>
@@ -617,7 +632,7 @@ function ReceptDetailModal({ recept, alleRecepten, onClose, onSave, mobile = fal
 
           {/* Opslaan */}
           <button
-            onClick={() => onSave({ notes, seizoen: seizoenen, tags, rating, gemaaktData, favoriet, laatstGemaakt: gemaaktData[0] || recept.laatstGemaakt })}
+            onClick={() => onSave({ notes, seizoen: seizoenen, tags, rating, gemaaktData, favoriet, dagen: aantalDagen, laatstGemaakt: gemaaktData[0] || recept.laatstGemaakt })}
             style={{ width: "100%", padding: "8px 14px", background: G.groen, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 500 }}
           >
             Opslaan
