@@ -778,7 +778,7 @@ Geen uitleg, alleen de array.`;
 }
 
 // ─── PAGINA: WEEKPLANNING ───────────────────────────────────────────────────
-function VerldenDagenLijst({ verldenDagen, planning, setPlanning, setSelectDag, mobile }) {
+function VerldenDagenLijst({ verldenDagen, planning, setPlanning, setSelectDag, mobile, recepten, onOpenDetail }) {
   const [bewerkKey, setBewerkKey] = useState(null);
   const [bewerkInput, setBewerkInput] = useState("");
 
@@ -809,7 +809,12 @@ function VerldenDagenLijst({ verldenDagen, planning, setPlanning, setSelectDag, 
                     <span style={{ fontWeight: 500, color: G.tekst, fontSize: 13 }}>{dagLabel}</span>
                     <span style={{ color: G.tekstZacht, fontSize: 12 }}>{formatDDMM(k)}</span>
                   </div>
-                  {r && !isBewerken && <div style={{ fontSize: 11.5, color: G.groenMid, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.naam}</div>}
+                  {r && !isBewerken && (
+                    <div
+                      onClick={() => { const volledig = recepten?.find(x => x.naam === r.naam); if (volledig && onOpenDetail) onOpenDetail(volledig); }}
+                      style={{ fontSize: 11.5, color: G.groenMid, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: recepten?.find(x => x.naam === r.naam) ? "pointer" : "default", textDecoration: recepten?.find(x => x.naam === r.naam) ? "underline" : "none", textDecorationColor: G.groenZacht }}
+                    >{r.naam}</div>
+                  )}
                 </div>
                 {!isBewerken && (
                   <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
@@ -1718,6 +1723,8 @@ Geef je antwoord als geldig JSON object (geen markdown, alleen JSON):
                 setPlanning={setPlanning}
                 setSelectDag={setSelectDag}
                 mobile={mobile}
+                recepten={recepten}
+                onOpenDetail={setDetailRecept}
               />
             )}
           </div>
