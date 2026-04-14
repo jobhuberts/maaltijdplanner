@@ -601,13 +601,13 @@ function ReceptDetailModal({ recept, alleRecepten, onClose, onSave, mobile = fal
           {/* Extra ingrediënten */}
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 5 }}>Extra ingrediënten</div>
-            <textarea value={extraIngredienten} onChange={e => setExtraIngredienten(e.target.value)} style={{ width: "100%", border: `1px solid ${G.zandMid}`, borderRadius: 8, padding: "7px 9px", fontSize: 12, color: G.tekst, resize: "vertical", minHeight: 60, background: G.zand, outline: "none", fontFamily: "inherit" }} placeholder="- bijv. kokosmelk&#10;- bloemkoolrijst" />
+            <textarea value={extraIngredienten} onChange={e => setExtraIngredienten(e.target.value)} style={{ width: "100%", border: `1px solid ${G.zandMid}`, borderRadius: 8, padding: "7px 9px", fontSize: 12, color: G.tekst, resize: "vertical", minHeight: 60, background: G.zand, outline: "none", fontFamily: "inherit" }}  />
           </div>
 
           {/* Kookinstructies */}
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 5 }}>Kookinstructies</div>
-            <textarea value={kookinstructies} onChange={e => setKookinstructies(e.target.value)} style={{ width: "100%", border: `1px solid ${G.zandMid}`, borderRadius: 8, padding: "7px 9px", fontSize: 12, color: G.tekst, resize: "vertical", minHeight: 60, background: G.zand, outline: "none", fontFamily: "inherit" }} placeholder="1. Verwarm de oven op 200°&#10;2. Meng de ingrediënten..." />
+            <textarea value={kookinstructies} onChange={e => setKookinstructies(e.target.value)} style={{ width: "100%", border: `1px solid ${G.zandMid}`, borderRadius: 8, padding: "7px 9px", fontSize: 12, color: G.tekst, resize: "vertical", minHeight: 60, background: G.zand, outline: "none", fontFamily: "inherit" }} />
           </div>
 
           {/* Seizoen — meerdere mogelijk */}
@@ -2264,13 +2264,13 @@ function ToevoegenModal({ onClose, onSave, volgendId }) {
               {/* Extra ingrediënten */}
               <div>
                 <label style={labelStijl}>Extra ingrediënten <span style={{ fontWeight: 400, textTransform: "none", fontSize: 10 }}>(optioneel)</span></label>
-                <textarea value={form.extraIngredienten} onChange={e => setForm(f => ({ ...f, extraIngredienten: e.target.value }))} placeholder="- bijv. kokosmelk&#10;- bloemkoolrijst" style={{ ...inputStijl, minHeight: 55, resize: "vertical" }} />
+                <textarea value={form.extraIngredienten} onChange={e => setForm(f => ({ ...f, extraIngredienten: e.target.value }))} style={{ ...inputStijl, minHeight: 55, resize: "vertical" }} />
               </div>
 
               {/* Kookinstructies */}
               <div>
                 <label style={labelStijl}>Kookinstructies <span style={{ fontWeight: 400, textTransform: "none", fontSize: 10 }}>(optioneel)</span></label>
-                <textarea value={form.kookinstructies} onChange={e => setForm(f => ({ ...f, kookinstructies: e.target.value }))} placeholder="1. Verwarm de oven op 200°&#10;2. Meng de ingrediënten..." style={{ ...inputStijl, minHeight: 55, resize: "vertical" }} />
+                <textarea value={form.kookinstructies} onChange={e => setForm(f => ({ ...f, kookinstructies: e.target.value }))} style={{ ...inputStijl, minHeight: 55, resize: "vertical" }} />
               </div>
 
               {/* Tags */}
