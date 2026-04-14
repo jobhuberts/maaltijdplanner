@@ -3282,11 +3282,11 @@ function StatistiekenPage({ recepten, planning, geschiedenis: geschiedenisProps 
           <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".07em", color: G.groenMid }}>Voedingsbronnen per week</div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <button onClick={() => setGeselecteerdeWeek(w => verschuifWeek(w, -1))}
-              style={{ width: 26, height: 26, borderRadius: "50%", border: `1px solid ${G.zandMid}`, background: G.zand, cursor: "pointer", fontSize: 14, color: G.tekstMid, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>‹</button>
+              style={{ width: 26, height: 26, minWidth: 26, borderRadius: "50%", border: `1px solid ${G.zandMid}`, background: G.zand, cursor: "pointer", fontSize: 14, color: G.tekstMid, display: "flex", alignItems: "center", justifyContent: "center", padding: 0, flexShrink: 0 }}>‹</button>
             <span style={{ fontSize: 11.5, color: G.tekst, fontWeight: 500, minWidth: 160, textAlign: "center" }}>{weekLabel(geselecteerdeWeek)}</span>
             <button onClick={() => setGeselecteerdeWeek(w => verschuifWeek(w, 1))}
               disabled={geselecteerdeWeek >= huidigeWeekKey}
-              style={{ width: 26, height: 26, borderRadius: "50%", border: `1px solid ${G.zandMid}`, background: geselecteerdeWeek >= huidigeWeekKey ? G.zand : G.zand, cursor: geselecteerdeWeek >= huidigeWeekKey ? "default" : "pointer", fontSize: 14, color: geselecteerdeWeek >= huidigeWeekKey ? G.tekstZacht : G.tekstMid, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>›</button>
+              style={{ width: 26, height: 26, minWidth: 26, borderRadius: "50%", border: `1px solid ${G.zandMid}`, background: G.zand, cursor: geselecteerdeWeek >= huidigeWeekKey ? "default" : "pointer", fontSize: 14, color: geselecteerdeWeek >= huidigeWeekKey ? G.tekstZacht : G.tekstMid, display: "flex", alignItems: "center", justifyContent: "center", padding: 0, flexShrink: 0 }}>›</button>
             {geselecteerdeWeek !== huidigeWeekKey && (
               <button onClick={() => setGeselecteerdeWeek(huidigeWeekKey)}
                 style={{ fontSize: 10.5, padding: "3px 8px", border: `1px solid ${G.zandMid}`, borderRadius: 10, background: G.zand, color: G.tekstMid, cursor: "pointer" }}>
