@@ -334,6 +334,16 @@ const initPlanning = {}; // planning is nu datumgebaseerd (sleutels = YYYY-MM-DD
 
 const NIET_VEGA = ["kip","bacon","chorizo","rookworst","zalm"];
 
+const VOEDINGSBRON_TAGS = [
+  { tag: "peulvruchten",   emoji: "🫘", label: "Peulvruchten" },
+  { tag: "ei",             emoji: "🥚", label: "Ei" },
+  { tag: "zuivel",         emoji: "🧀", label: "Zuivel" },
+  { tag: "noten & zaden",  emoji: "🌰", label: "Noten & zaden" },
+  { tag: "tofu/tempeh",    emoji: "🌿", label: "Tofu/tempeh" },
+  { tag: "volkorengranen", emoji: "🌾", label: "Volkorengranen" },
+  { tag: "vis",            emoji: "🐟", label: "Vis" },
+];
+
 function Sterren({ rating, size = 11 }) {
   return <span style={{ color: G.zandDeep, fontSize: size }}>
     {"★".repeat(rating)}{"☆".repeat(5 - rating)}
@@ -489,7 +499,46 @@ function ReceptDetailModal({ recept, alleRecepten, onClose, onSave, mobile = fal
   const [imgErr, setImgErr] = useState(false);
   const isNietVega = NIET_VEGA.some(w => recept.naam.toLowerCase().includes(w));
 
-  const bestaandeTags = alleTagsUitDatabase(alleRecepten).filter(t => !tags.includes(t));
+  const bestaandeTags = alleTagsUitDatabase(alleRecepten).filter(t => !tags.includes(t) && !VOEDINGSBRON_TAGS.some(v => v.tag === t));
+  const [autoDetectLaden, setAutoDetectLaden] = useState(false);
+  const [autoDetectFout, setAutoDetectFout] = useState(null);
+
+  const toggleVoedingsbron = (tag) => {
+    setTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+  };
+
+  const autoDetecteer = async () => {
+    setAutoDetectLaden(true);
+    setAutoDetectFout(null);
+    try {
+      const prompt = `Analyseer dit vegetarische recept en bepaal welke voedingsbronnen erin zitten.
+Recept: "${recept.naam}"${recept.url ? `\nURL: ${recept.url}` : ""}
+
+Kies uitsluitend uit deze opties (gebruik exact deze schrijfwijze):
+peulvruchten, ei, zuivel, noten & zaden, tofu/tempeh, volkorengranen, vis
+
+Geef alleen een JSON array terug met de van toepassing zijnde tags, bijv: ["ei","zuivel"]
+Geen uitleg, alleen de array.`;
+      const data = await claudeFetch({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 100,
+        messages: [{ role: "user", content: prompt }]
+      });
+      const tekst = data.content?.[0]?.text?.trim() || "[]";
+      const match = tekst.match(/\[.*\]/s);
+      const gevonden = match ? JSON.parse(match[0]) : [];
+      const geldig = VOEDINGSBRON_TAGS.map(v => v.tag);
+      const gefilterd = gevonden.filter(t => geldig.includes(t));
+      setTags(prev => {
+        const zonderVoedingsbron = prev.filter(t => !geldig.includes(t));
+        return [...zonderVoedingsbron, ...gefilterd];
+      });
+    } catch (e) {
+      setAutoDetectFout("Kon niet ophalen — controleer je API-verbinding.");
+    } finally {
+      setAutoDetectLaden(false);
+    }
+  };
 
   const toggleSeizoen = (s) => {
     setSeizoeenen(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
@@ -625,12 +674,37 @@ function ReceptDetailModal({ recept, alleRecepten, onClose, onSave, mobile = fal
             </div>
           </div>
 
+          {/* Voedingsbronnen */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid }}>Voedingsbronnen</div>
+              <button
+                onClick={autoDetecteer}
+                disabled={autoDetectLaden}
+                style={{ fontSize: 10.5, padding: "3px 9px", background: autoDetectLaden ? G.zandMid : G.groenPale, color: autoDetectLaden ? G.tekstZacht : G.groenMid, border: `1px solid ${G.groenZacht}`, borderRadius: 20, cursor: autoDetectLaden ? "default" : "pointer", display: "flex", alignItems: "center", gap: 4 }}
+              >
+                {autoDetectLaden ? "⏳ Bezig…" : "✨ Auto-detecteer"}
+              </button>
+            </div>
+            {autoDetectFout && <div style={{ fontSize: 11, color: "#c0392b", marginBottom: 6 }}>{autoDetectFout}</div>}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+              {VOEDINGSBRON_TAGS.map(({ tag, emoji, label }) => {
+                const actief = tags.includes(tag);
+                return (
+                  <button key={tag} onClick={() => toggleVoedingsbron(tag)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, border: `1px solid ${actief ? G.groen : G.zandMid}`, background: actief ? G.groen : G.zand, color: actief ? "#fff" : G.tekstMid, cursor: "pointer", transition: "all .12s", display: "flex", alignItems: "center", gap: 4 }}>
+                    {emoji} {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Tags */}
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 6 }}>Tags</div>
-            {/* Actieve tags */}
+            {/* Actieve tags (excl. voedingsbronnen) */}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
-              {tags.map(t => (
+              {tags.filter(t => !VOEDINGSBRON_TAGS.some(v => v.tag === t)).map(t => (
                 <span key={t} style={{ fontSize: 10.5, padding: "3px 9px", background: G.groenPale, color: G.groenMid, borderRadius: 20, display: "flex", alignItems: "center", gap: 3 }}>
                   {t}
                   <span onClick={() => setTags(tags.filter(x => x !== t))} style={{ cursor: "pointer", fontSize: 11, color: G.groenLicht, lineHeight: 1 }}>✕</span>
