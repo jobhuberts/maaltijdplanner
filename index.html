@@ -2019,6 +2019,7 @@ Geef je antwoord als geldig JSON object (geen markdown, alleen JSON):
           onClose={() => setDetailRecept(null)}
           onSave={(updates) => {
             const bijgewerkt = { ...detailRecept, ...updates };
+            setDetailRecept(null);
             setRecepten(recepten.map(r => r.id === detailRecept.id ? bijgewerkt : r));
             // Werk ook de planning bij zodat de tegel direct de nieuwe info toont
             const nieuwePlanning = {};
@@ -2026,7 +2027,6 @@ Geef je antwoord als geldig JSON object (geen markdown, alleen JSON):
               nieuwePlanning[k] = { ...v, recept: v.recept?.id === detailRecept.id ? bijgewerkt : v.recept };
             }
             setPlanning(nieuwePlanning);
-            setDetailRecept(null);
           }}
         />
       )}
@@ -2256,8 +2256,8 @@ function ReceptenPage({ recepten, setRecepten, isMobile = false }) {
   };
 
   const saveRecept = (id, updates) => {
-    setRecepten(recepten.map(r => r.id === id ? { ...r, ...updates } : r));
     setDetailRecept(null);
+    setRecepten(recepten.map(r => r.id === id ? { ...r, ...updates } : r));
   };
 
   const voegReceptToe = (nieuw) => {
@@ -3410,7 +3410,7 @@ function loadRecepten() {
 
 function saveRecepten(r) {
   try { localStorage.setItem(LS_RECEPTEN, JSON.stringify(r)); } catch {}
-  if (HUIDIGE_FAMILIE_ID) fbDb.ref(`families/${HUIDIGE_FAMILIE_ID}/recepten`).set(r).catch(() => {});
+  try { if (HUIDIGE_FAMILIE_ID) fbDb.ref(`families/${HUIDIGE_FAMILIE_ID}/recepten`).set(r).catch(() => {}); } catch {}
 }
 
 function loadPlanning() {
