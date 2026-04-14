@@ -342,6 +342,7 @@ const VOEDINGSBRON_TAGS = [
   { tag: "tofu/tempeh",    emoji: "🌿", label: "Tofu/tempeh" },
   { tag: "volkorengranen", emoji: "🌾", label: "Volkorengranen" },
   { tag: "vis",            emoji: "🐟", label: "Vis" },
+  { tag: "bladgroenten",  emoji: "🥬", label: "Bladgroenten" },
 ];
 
 function Sterren({ rating, size = 11 }) {
@@ -515,7 +516,9 @@ function ReceptDetailModal({ recept, alleRecepten, onClose, onSave, mobile = fal
 Recept: "${recept.naam}"${recept.url ? `\nURL: ${recept.url}` : ""}
 
 Kies uitsluitend uit deze opties (gebruik exact deze schrijfwijze):
-peulvruchten, ei, zuivel, noten & zaden, tofu/tempeh, volkorengranen, vis
+peulvruchten, ei, zuivel, noten & zaden, tofu/tempeh, volkorengranen, vis, bladgroenten
+
+bladgroenten = spinazie, boerenkool, broccoli, paksoi, snijbiet, andijvie e.d.
 
 Geef alleen een JSON array terug met de van toepassing zijnde tags, bijv: ["ei","zuivel"]
 Geen uitleg, alleen de array.`;
@@ -534,7 +537,14 @@ Geen uitleg, alleen de array.`;
         return [...zonderVoedingsbron, ...gefilterd];
       });
     } catch (e) {
-      setAutoDetectFout("Kon niet ophalen — controleer je API-verbinding.");
+      const msg = e.message || "";
+      if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("fetch")) {
+        setAutoDetectFout("Proxy niet bereikbaar — is proxy.py actief? (python3 proxy.py)");
+      } else if (msg.includes("401") || msg.includes("authentication")) {
+        setAutoDetectFout("Ongeldige API-sleutel — controleer je sleutel in Instellingen.");
+      } else {
+        setAutoDetectFout(`Fout: ${msg || "onbekend"}`);
+      }
     } finally {
       setAutoDetectLaden(false);
     }
@@ -3044,6 +3054,7 @@ function StatistiekenPage({ recepten, planning, geschiedenis: geschiedenisProps 
     "tofu/tempeh":    { doel: 1, tip: "1–2×/week voor eiwitten" },
     "volkorengranen": { doel: 4, tip: "4–5×/week voor vezels" },
     "vis":            { doel: 1, tip: "1–2×/week voor omega-3" },
+    "bladgroenten":   { doel: 3, tip: "3–4×/week voor calcium & non-heem ijzer (spinazie, boerenkool, broccoli)" },
   };
 
   // Tel voedingsbronnen voor geselecteerde week
