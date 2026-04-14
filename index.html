@@ -3009,6 +3009,64 @@ function StatistiekenPage({ recepten, planning, geschiedenis: geschiedenisProps 
   ];
   const [voedingPeriode, setVoedingPeriode] = useState(7);
 
+  // ── Voedingsbronnen per week ──────────────────────────────────────────────
+  const huidigeWeekKey = weekKey(new Date().toISOString());
+  const [geselecteerdeWeek, setGeselecteerdeWeek] = useState(huidigeWeekKey);
+
+  function weekKeyNaarDatum(wk) {
+    // "2024-W15" → maandag van die week
+    const [jaar, wNr] = wk.split("-W").map(Number);
+    const jan4 = new Date(jaar, 0, 4);
+    const maandag = new Date(jan4);
+    maandag.setDate(jan4.getDate() - (jan4.getDay() + 6) % 7 + (wNr - 1) * 7);
+    return maandag;
+  }
+
+  function verschuifWeek(wk, delta) {
+    const d = weekKeyNaarDatum(wk);
+    d.setDate(d.getDate() + delta * 7);
+    return weekKey(d.toISOString());
+  }
+
+  function weekLabel(wk) {
+    const ma = weekKeyNaarDatum(wk);
+    const zo = new Date(ma); zo.setDate(ma.getDate() + 6);
+    const fmt = d => `${d.getDate()} ${["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"][d.getMonth()]}`;
+    const nr = wk.split("-W")[1];
+    return `Week ${nr} · ${fmt(ma)}–${fmt(zo)}`;
+  }
+
+  const VOEDINGSBRON_DOELEN = {
+    "peulvruchten":   { doel: 3, tip: "3–4×/week voor eiwit & ijzer" },
+    "ei":             { doel: 2, tip: "2–3×/week" },
+    "zuivel":         { doel: 2, tip: "2–3×/week voor calcium" },
+    "noten & zaden":  { doel: 2, tip: "2×/week voor gezonde vetten & zink" },
+    "tofu/tempeh":    { doel: 1, tip: "1–2×/week voor eiwitten" },
+    "volkorengranen": { doel: 4, tip: "4–5×/week voor vezels" },
+    "vis":            { doel: 1, tip: "1–2×/week voor omega-3" },
+  };
+
+  // Tel voedingsbronnen voor geselecteerde week
+  const weekEntries = (weken[geselecteerdeWeek] || []);
+  const voedingsbronTelling = {};
+  VOEDINGSBRON_TAGS.forEach(({ tag }) => { voedingsbronTelling[tag] = 0; });
+  weekEntries.forEach(e => {
+    const r = vindRecept(e.maaltijd);
+    if (r && Array.isArray(r.tags)) {
+      r.tags.forEach(t => {
+        if (voedingsbronTelling.hasOwnProperty(t)) voedingsbronTelling[t]++;
+      });
+    }
+  });
+
+  function signaalkLeur(tag, count) {
+    const d = VOEDINGSBRON_DOELEN[tag];
+    if (!d) return G.zandMid;
+    if (count >= d.doel) return "#3D9A47";
+    if (count > 0) return "#E8A020";
+    return "#D94F3D";
+  }
+
   // Bereken datumbereik voor weergave
   const nu = new Date();
   let periodeLabel = "";
@@ -3200,7 +3258,60 @@ function StatistiekenPage({ recepten, planning, geschiedenis: geschiedenisProps 
         </div>
       </div>
 
-      {/* ── Rij 3: Voedingswaarden ── */}
+      {/* ── Rij 3: Voedingsbronnen per week ── */}
+      {kaart(<>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+          <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".07em", color: G.groenMid }}>Voedingsbronnen per week</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <button onClick={() => setGeselecteerdeWeek(w => verschuifWeek(w, -1))}
+              style={{ width: 26, height: 26, borderRadius: "50%", border: `1px solid ${G.zandMid}`, background: G.zand, cursor: "pointer", fontSize: 14, color: G.tekstMid, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>‹</button>
+            <span style={{ fontSize: 11.5, color: G.tekst, fontWeight: 500, minWidth: 160, textAlign: "center" }}>{weekLabel(geselecteerdeWeek)}</span>
+            <button onClick={() => setGeselecteerdeWeek(w => verschuifWeek(w, 1))}
+              disabled={geselecteerdeWeek >= huidigeWeekKey}
+              style={{ width: 26, height: 26, borderRadius: "50%", border: `1px solid ${G.zandMid}`, background: geselecteerdeWeek >= huidigeWeekKey ? G.zand : G.zand, cursor: geselecteerdeWeek >= huidigeWeekKey ? "default" : "pointer", fontSize: 14, color: geselecteerdeWeek >= huidigeWeekKey ? G.tekstZacht : G.tekstMid, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>›</button>
+            {geselecteerdeWeek !== huidigeWeekKey && (
+              <button onClick={() => setGeselecteerdeWeek(huidigeWeekKey)}
+                style={{ fontSize: 10.5, padding: "3px 8px", border: `1px solid ${G.zandMid}`, borderRadius: 10, background: G.zand, color: G.tekstMid, cursor: "pointer" }}>
+                Vandaag
+              </button>
+            )}
+          </div>
+        </div>
+
+        {weekEntries.length === 0 ? (
+          <div style={{ fontSize: 12, color: G.tekstZacht, padding: "16px 0", textAlign: "center" }}>Geen maaltijden gepland in deze week</div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 8 }}>
+            {VOEDINGSBRON_TAGS.map(({ tag, emoji, label }) => {
+              const count = voedingsbronTelling[tag] || 0;
+              const kleur = signaalkLeur(tag, count);
+              const doel = VOEDINGSBRON_DOELEN[tag]?.doel || 1;
+              const tip = VOEDINGSBRON_DOELEN[tag]?.tip || "";
+              return (
+                <div key={tag} title={tip} style={{ background: G.zand, borderRadius: 10, padding: "10px 10px 8px", borderLeft: `3px solid ${kleur}`, display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 15 }}>{emoji}</span>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: kleur, lineHeight: 1 }}>{count}</span>
+                  </div>
+                  <div style={{ fontSize: 10.5, color: G.tekst, fontWeight: 500, lineHeight: 1.2 }}>{label}</div>
+                  <div style={{ fontSize: 9.5, color: G.tekstZacht }}>doel: {doel}×</div>
+                  <div style={{ height: 3, background: G.zandMid, borderRadius: 2, overflow: "hidden", marginTop: 2 }}>
+                    <div style={{ width: `${Math.min(count / doel * 100, 100)}%`, height: "100%", background: kleur, borderRadius: 2, transition: "width .3s" }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div style={{ fontSize: 10, color: G.tekstZacht, fontStyle: "italic", marginTop: 10, display: "flex", gap: 14 }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#3D9A47", display: "inline-block" }} /> Doel gehaald</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#E8A020", display: "inline-block" }} /> Gedeeltelijk</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#D94F3D", display: "inline-block" }} /> Ontbreekt</span>
+        </div>
+      </>, { marginBottom: 16 })}
+
+      {/* ── Rij 4: Voedingswaarden ── */}
       {kaart(<>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: ".07em", color: G.groenMid }}>
