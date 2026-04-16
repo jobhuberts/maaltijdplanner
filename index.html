@@ -841,8 +841,8 @@ Geen uitleg, alleen de array.`;
           </button>
         </div>
       </div>
+      {gemaaktModal && <GemaaktBevestigModal receptNaam={recept.naam} initRatingOuders={ratingOuders} initRatingKinderen={ratingKinderen} initTags={tags} onAnnuleer={() => setGemaaktModal(false)} onBevestig={bevestigGemaakt} />}
     </div>
-    {gemaaktModal && <GemaaktBevestigModal receptNaam={recept.naam} initRatingOuders={ratingOuders} initRatingKinderen={ratingKinderen} initTags={tags} onAnnuleer={() => setGemaaktModal(false)} onBevestig={bevestigGemaakt} />}
   );
 }
 
