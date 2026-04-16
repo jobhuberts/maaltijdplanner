@@ -481,6 +481,65 @@ function alleTagsUitDatabase(recepten) {
   return [...set].sort();
 }
 
+function GemaaktBevestigModal({ receptNaam, initRatingOuders, initRatingKinderen, initTags, onAnnuleer, onBevestig }) {
+  const [locRatingOuders, setLocRatingOuders] = useState(initRatingOuders);
+  const [locRatingKinderen, setLocRatingKinderen] = useState(initRatingKinderen);
+  const [locTags, setLocTags] = useState([...initTags]);
+  const [hoverO, setHoverO] = useState(0);
+  const [hoverK, setHoverK] = useState(0);
+  const toggleTag = (tag) => setLocTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(30,46,30,.65)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ background: G.kaart, borderRadius: 16, width: "100%", maxWidth: 400, boxShadow: "0 12px 40px rgba(44,74,46,.25)", overflow: "hidden" }}>
+        <div style={{ background: G.groen, padding: "16px 20px" }}>
+          <div style={{ fontSize: 16, fontWeight: 600, color: "#fff", marginBottom: 2 }}>✅ Gemaakt!</div>
+          <div style={{ fontSize: 12, color: G.groenLicht }}>{receptNaam}</div>
+        </div>
+        <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 8 }}>Voedingsbronnen</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+              {VOEDINGSBRON_TAGS.map(({ tag, emoji, label }) => {
+                const actief = locTags.includes(tag);
+                return (
+                  <button key={tag} onClick={() => toggleTag(tag)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, border: `1px solid ${actief ? G.groen : G.zandMid}`, background: actief ? G.groen : G.zand, color: actief ? "#fff" : G.tekstMid, cursor: "pointer", transition: "all .12s" }}>
+                    {emoji} {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 8 }}>Rating</div>
+            {[
+              { label: "Ouders", val: locRatingOuders, setVal: setLocRatingOuders, hover: hoverO, setHover: setHoverO },
+              { label: "Kinderen", val: locRatingKinderen, setVal: setLocRatingKinderen, hover: hoverK, setHover: setHoverK },
+            ].map(({ label, val, setVal, hover, setHover }) => (
+              <div key={label} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                <span style={{ fontSize: 12, color: G.tekstMid, width: 60 }}>{label}</span>
+                <div style={{ display: "flex", gap: 3 }}>
+                  {[1,2,3,4,5].map(s => (
+                    <span key={s} onClick={() => setVal(s)} onMouseEnter={() => setHover(s)} onMouseLeave={() => setHover(0)}
+                      style={{ fontSize: 22, cursor: "pointer", color: s <= (hover || val) ? "#E8A020" : G.zandMid, lineHeight: 1 }}>★</span>
+                  ))}
+                </div>
+                {val > 0 && <span onClick={() => setVal(0)} style={{ fontSize: 10, color: G.tekstZacht, cursor: "pointer" }}>wis</span>}
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={onAnnuleer} style={{ flex: 1, padding: "9px 0", border: `1px solid ${G.zandMid}`, borderRadius: 8, background: "transparent", color: G.tekstMid, cursor: "pointer", fontSize: 13 }}>Annuleer</button>
+            <button onClick={() => onBevestig({ nieuweRatingOuders: locRatingOuders, nieuweRatingKinderen: locRatingKinderen, nieuweTags: locTags })}
+              style={{ flex: 2, padding: "9px 0", border: "none", borderRadius: 8, background: G.groen, color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+              Opslaan
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ReceptDetailModal({ recept, alleRecepten, onClose, onSave, mobile = false }) {
   const [extraIngredienten, setExtraIngredienten] = useState(recept.extraIngredienten ?? migreerNotes(recept.notes || "").extraIngredienten);
   const [kookinstructies, setKookinstructies] = useState(recept.kookinstructies ?? migreerNotes(recept.notes || "").kookinstructies);
@@ -577,71 +636,6 @@ Geen uitleg, alleen de array.`;
   };
 
   const formatDatum = (iso) => new Date(iso).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
-
-  // ── Bevestigingsmodal na "Vandaag gemaakt" ───────────────────────────────
-  function GemaaktBevestigModal() {
-    const [locRatingOuders, setLocRatingOuders] = useState(ratingOuders);
-    const [locRatingKinderen, setLocRatingKinderen] = useState(ratingKinderen);
-    const [locTags, setLocTags] = useState([...tags]);
-    const [hoverO, setHoverO] = useState(0);
-    const [hoverK, setHoverK] = useState(0);
-    const geldigeTags = VOEDINGSBRON_TAGS.map(v => v.tag);
-    const toggleTag = (tag) => setLocTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
-    return (
-      <div style={{ position: "fixed", inset: 0, background: "rgba(30,46,30,.65)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-        <div style={{ background: G.kaart, borderRadius: 16, width: "100%", maxWidth: 400, boxShadow: "0 12px 40px rgba(44,74,46,.25)", overflow: "hidden" }}>
-          {/* Header */}
-          <div style={{ background: G.groen, padding: "16px 20px" }}>
-            <div style={{ fontSize: 16, fontWeight: 600, color: "#fff", marginBottom: 2 }}>✅ Gemaakt!</div>
-            <div style={{ fontSize: 12, color: G.groenLicht }}>{recept.naam}</div>
-          </div>
-          <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
-            {/* Voedingsbronnen */}
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 8 }}>Voedingsbronnen</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                {VOEDINGSBRON_TAGS.map(({ tag, emoji, label }) => {
-                  const actief = locTags.includes(tag);
-                  return (
-                    <button key={tag} onClick={() => toggleTag(tag)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, border: `1px solid ${actief ? G.groen : G.zandMid}`, background: actief ? G.groen : G.zand, color: actief ? "#fff" : G.tekstMid, cursor: "pointer", transition: "all .12s" }}>
-                      {emoji} {label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            {/* Ratings */}
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em", color: G.groenMid, marginBottom: 8 }}>Rating</div>
-              {[
-                { label: "Ouders", val: locRatingOuders, setVal: setLocRatingOuders, hover: hoverO, setHover: setHoverO },
-                { label: "Kinderen", val: locRatingKinderen, setVal: setLocRatingKinderen, hover: hoverK, setHover: setHoverK },
-              ].map(({ label, val, setVal, hover, setHover }) => (
-                <div key={label} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                  <span style={{ fontSize: 12, color: G.tekstMid, width: 60 }}>{label}</span>
-                  <div style={{ display: "flex", gap: 3 }}>
-                    {[1,2,3,4,5].map(s => (
-                      <span key={s} onClick={() => setVal(s)} onMouseEnter={() => setHover(s)} onMouseLeave={() => setHover(0)}
-                        style={{ fontSize: 22, cursor: "pointer", color: s <= (hover || val) ? "#E8A020" : G.zandMid, lineHeight: 1 }}>★</span>
-                    ))}
-                  </div>
-                  {val > 0 && <span onClick={() => setVal(0)} style={{ fontSize: 10, color: G.tekstZacht, cursor: "pointer" }}>wis</span>}
-                </div>
-              ))}
-            </div>
-            {/* Knoppen */}
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => setGemaaktModal(false)} style={{ flex: 1, padding: "9px 0", border: `1px solid ${G.zandMid}`, borderRadius: 8, background: "transparent", color: G.tekstMid, cursor: "pointer", fontSize: 13 }}>Annuleer</button>
-              <button onClick={() => bevestigGemaakt({ nieuweRatingOuders: locRatingOuders, nieuweRatingKinderen: locRatingKinderen, nieuweTags: locTags })}
-                style={{ flex: 2, padding: "9px 0", border: "none", borderRadius: 8, background: G.groen, color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
-                Opslaan
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   const outerStyle = mobile
     ? { position: "fixed", inset: 0, background: "rgba(30,46,30,.55)", zIndex: 200 }
@@ -848,7 +842,7 @@ Geen uitleg, alleen de array.`;
         </div>
       </div>
     </div>
-    {gemaaktModal && <GemaaktBevestigModal />}
+    {gemaaktModal && <GemaaktBevestigModal receptNaam={recept.naam} initRatingOuders={ratingOuders} initRatingKinderen={ratingKinderen} initTags={tags} onAnnuleer={() => setGemaaktModal(false)} onBevestig={bevestigGemaakt} />}
   );
 }
 
