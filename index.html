@@ -332,6 +332,7 @@ function migreerPlanning(p) {
 
 const initPlanning = {}; // planning is nu datumgebaseerd (sleutels = YYYY-MM-DD)
 
+const APP_VERSIE = "0.40"; // verhoog bij elke push
 const NIET_VEGA = ["kip","bacon","chorizo","rookworst","zalm"];
 
 const VOEDINGSBRON_TAGS = [
@@ -4269,6 +4270,11 @@ function AppWithStorage() {
               <span onClick={() => setToonApiKey(true)} style={{ fontSize: 10, color: G.groenLicht, cursor: "pointer", textDecoration: "underline" }}>wijzig</span>
             </div>
           )}
+        </div>
+
+        {/* Versienummer */}
+        <div style={{ padding: "10px 20px 16px", textAlign: "center" }}>
+          <span style={{ fontSize: 10, color: "rgba(255,255,255,.25)", letterSpacing: ".04em" }}>Tafel & Week v{APP_VERSIE}</span>
         </div>
       </nav>
       <main style={{ flex: 1, overflowY: "auto" }}>
