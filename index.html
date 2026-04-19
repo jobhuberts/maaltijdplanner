@@ -2161,6 +2161,17 @@ Geef je antwoord als geldig JSON object (geen markdown, alleen JSON):
                         </button>
                       );
                     })()}
+                    {/* Ook morgen knop — alleen bij 2-daags recept als volgende dag anders is */}
+                    {r.dagen >= 2 && nextKey && (!nextR || nextR.id !== r.id) && (
+                      <button onClick={(e) => {
+                        e.stopPropagation();
+                        const nextP = planning[nextKey] || { thuiswerk: false, personen: 4 };
+                        setPlanning({ ...planning, [nextKey]: { ...nextP, recept: r } });
+                      }} style={{ width: "100%", padding: mobile ? "11px" : "7px", background: G.zand, color: G.groenMid, border: `1px dashed ${G.groenZacht}`, borderRadius: 8, fontSize: mobile ? 13 : 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontWeight: 500 }}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="5 12 12 5 19 12"/><line x1="12" y1="5" x2="12" y2="19"/></svg>
+                        Ook morgen plannen
+                      </button>
+                    )}
                     <div style={{ display: "flex", gap: 6 }}>
                       <button onClick={(e) => { e.stopPropagation(); setSelectDag({ key, label: `${dagTitel} ${formatDDMM(key)}` }); }} style={{ flex: 1, padding: mobile ? "11px 8px" : "7px 8px", background: G.groenPale, color: G.groenMid, border: `1px solid ${G.groenZacht}`, borderRadius: 8, fontSize: mobile ? 13 : 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
