@@ -2162,7 +2162,7 @@ Geef je antwoord als geldig JSON object (geen markdown, alleen JSON):
                       );
                     })()}
                     {/* Ook morgen knop — alleen bij 2-daags recept als volgende dag anders is */}
-                    {r.dagen >= 2 && nextKey && (!nextR || nextR.id !== r.id) && (
+                    {r.dagen >= 2 && !isTweedeDag && nextKey && (!nextR || nextR.id !== r.id) && (
                       <button onClick={(e) => {
                         e.stopPropagation();
                         const nextP = planning[nextKey] || { thuiswerk: false, personen: 4 };
