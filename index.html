@@ -821,15 +821,34 @@ Geen uitleg, alleen de array.`;
                 {gemaaktData.slice(0, 5).map((d, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontSize: 12, color: i === 0 ? G.tekst : G.tekstMid }}>{formatDatum(d)}</span>
-                    {i === 0 && <span style={{ fontSize: 10, background: G.groenPale, color: G.groenMid, padding: "1px 6px", borderRadius: 10 }}>laatste keer</span>}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      {i === 0 && <span style={{ fontSize: 10, background: G.groenPale, color: G.groenMid, padding: "1px 6px", borderRadius: 10 }}>laatste keer</span>}
+                      <span onClick={() => setGemaaktData(prev => prev.filter((_, j) => j !== i))} style={{ fontSize: 11, color: G.tekstZacht, cursor: "pointer", lineHeight: 1 }} title="Verwijder">✕</span>
+                    </div>
                   </div>
                 ))}
                 {gemaaktData.length > 5 && <div style={{ fontSize: 11, color: G.tekstZacht }}>+ {gemaaktData.length - 5} eerdere keren</div>}
               </div>
             )}
-            <button onClick={markeerGemaakt} style={{ padding: "5px 12px", background: "transparent", border: `1px solid ${G.zandMid}`, color: G.tekstMid, borderRadius: 7, cursor: "pointer", fontSize: 11.5 }}>
-              + Vandaag gemaakt
-            </button>
+            <div style={{ display: "flex", gap: 5 }}>
+              <button onClick={markeerGemaakt} style={{ padding: "5px 12px", background: "transparent", border: `1px solid ${G.zandMid}`, color: G.tekstMid, borderRadius: 7, cursor: "pointer", fontSize: 11.5, whiteSpace: "nowrap" }}>
+                + Vandaag
+              </button>
+              <input
+                type="date"
+                max={new Date().toISOString().split("T")[0]}
+                onChange={e => {
+                  if (!e.target.value) return;
+                  const iso = new Date(e.target.value + "T12:00:00").toISOString();
+                  setGemaaktData(prev => {
+                    const gefilterd = prev.filter(d => !d.startsWith(e.target.value));
+                    return [iso, ...gefilterd].sort((a, b) => b.localeCompare(a));
+                  });
+                  e.target.value = "";
+                }}
+                style={{ flex: 1, border: `1px solid ${G.zandMid}`, borderRadius: 7, padding: "5px 8px", fontSize: 11.5, background: G.zand, color: G.tekst, outline: "none" }}
+              />
+            </div>
           </div>
 
           {/* Opslaan */}
